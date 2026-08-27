@@ -1,6 +1,6 @@
 {
   "preset": "travel-food-journal",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "profiles": {
     "theme": "food",
     "style": "watercolor-journal",
@@ -11,7 +11,11 @@
   "modules": {
     "caption": {
       "enabled": true,
-      "lines": ["location", "subject", "date"],
+      "lines": [
+        "location",
+        "subject",
+        "date"
+      ],
       "date_format": "YYYY-MM-DD",
       "font_family": "Noto Sans Light",
       "font_size_at_1080px": 30,
@@ -25,12 +29,82 @@
       "hand_drawn": true,
       "anti_alias": true,
       "avoid_subjects": true,
-      "markers": {"enabled": true, "start": true, "end": true}
+      "markers": {
+        "enabled": true,
+        "start": true,
+        "end": true
+      }
     },
-    "watermark": {"enabled": true, "text": "@1mether", "position": "top-right"},
-    "disclosure": {"enabled": false, "text": "Photos were transformed into a hand-drawn style with AI."},
-    "numbering": {"enabled": false}
+    "watermark": {
+      "enabled": true,
+      "text": "@1mether",
+      "position": "top-right"
+    },
+    "disclosure": {
+      "enabled": false,
+      "text": "Photos were transformed into a hand-drawn style with AI."
+    },
+    "numbering": {
+      "enabled": false
+    }
   },
-  "export": {"numbered_filenames": true, "zip": true, "include_manifest": true, "include_resolved_config": true, "include_qa_report": true},
-  "overrides": {}
+  "export": {
+    "numbered_filenames": true,
+    "zip": true,
+    "include_manifest": true,
+    "include_resolved_config": true,
+    "include_qa_report": true,
+    "require_completed_review_checklist": true,
+    "require_verified_staging_manifest": true,
+    "include_package_manifest": true
+  },
+  "overrides": {},
+  "workflow_defaults": {
+    "ordering": "exif_capture_time_ascending",
+    "plan": {
+      "markdown_required": true,
+      "presentation": "artifact_or_faithful_summary",
+      "sample_page": "first_exif_page"
+    },
+    "approval": {
+      "explicit_user_message_required": true,
+      "generated_sample_as_style_reference": false
+    },
+    "plate_pipeline": {
+      "normalize": true,
+      "validate": true,
+      "use_style_profile_policy": true
+    },
+    "qa": {
+      "full_size_each_page": true,
+      "phone_scale_each_page": true,
+      "page_level_required": true,
+      "set_level_required": true
+    },
+    "revision": {
+      "operations": [
+        "remove",
+        "retain_but_simplify",
+        "add_as_secondary",
+        "preserve_unchanged"
+      ],
+      "page_local_preserves_unchanged_pages": true,
+      "sample_or_style_change_resets_gate": true,
+      "local_domains": [
+        "page-content",
+        "page-overlay"
+      ],
+      "gate_reset_domains": [
+        "sample",
+        "style-reference",
+        "shared-system",
+        "source-order"
+      ]
+    },
+    "packaging": {
+      "verified_stage_only": true,
+      "hash_manifest": true,
+      "integrity_check": true
+    }
+  }
 }

@@ -179,14 +179,19 @@ def resolve_preset(
     if errors:
         raise ValueError("\n".join(errors))
 
+    workflow_defaults = preset.get("workflow_defaults", {})
+    if not isinstance(workflow_defaults, dict):
+        raise ValueError("preset.workflow_defaults must be an object")
+
     resolved = {
-        "schema_version": "1.0.0",
+        "schema_version": "1.1.0",
         "resolved": True,
         "preset": preset["preset"],
         "preset_version": preset.get("version"),
         "profile_sources": sources,
         "profiles": resolved_profiles,
         "modules": modules,
+        "workflow_defaults": workflow_defaults,
         "export": preset.get("export", {}),
         "warnings": warnings,
     }

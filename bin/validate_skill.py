@@ -19,6 +19,7 @@ from resolve_config import (
     load_json,
     resolve_preset,
 )
+from workflow_contracts import validate_style_contract
 
 
 def main() -> int:
@@ -29,7 +30,20 @@ def main() -> int:
     root = args.skill_root.resolve()
     errors: list[str] = []
     warnings: list[str] = []
-    counts = {"presets": 0, "profiles": 0, "style_references": 0}
+    counts = {"presets": 0, "profiles": 0, "style_references": 0, "workflow_gate_files": 0}
+
+    required_review_gate_files = (
+        "bin/build_production_plan.py", "bin/review_gate.py", "bin/render_scope.py",
+        "bin/clean_plate.py", "bin/review_checklist.py", "bin/revision_scope.py",
+        "bin/package_verified.py", "references/review-gate.md", "references/quality-checks.md",
+        "tests/fixtures/generic-visual-cases.json",
+    )
+    for relative in required_review_gate_files:
+        path = root / relative
+        if path.is_file():
+            counts["workflow_gate_files"] += 1
+        else:
+            errors.append(f"missing mandatory review-gate file: {path}")
 
     ids: dict[str, set[str]] = {concern: set() for concern in CONCERNS}
     for concern, folder in PROFILE_DIRS.items():
@@ -57,6 +71,11 @@ def main() -> int:
                 errors.append(f"{path}: filename must match id '{profile_id}'")
 
             if concern == "style":
+                for message in validate_style_contract(profile.get("sample_style_contract_defaults"), f"{path}.sample_style_contract_defaults"):
+                    errors.append(message)
+                cleanup = profile.get("plate_normalization")
+                if not isinstance(cleanup, dict) or cleanup.get("mode") not in {"paper-key-soft", "alpha-required", "disabled"}:
+                    errors.append(f"{path}: plate_normalization.mode must be paper-key-soft, alpha-required, or disabled")
                 references = profile.get("references")
                 if references == [] and profile.get("reference_status") == "pending-selection":
                     warnings.append(f"style references pending selection: {profile_id}")
@@ -136,6 +155,14 @@ def main() -> int:
                     allow_missing_unbundled_reference=True,
                 )
                 Path(temp, f"{resolved['preset']}.json").write_text(json.dumps(resolved), encoding="utf-8")
+                defaults = resolved.get("workflow_defaults", {})
+                if resolved.get("preset") == "travel-food-journal":
+                    required_defaults = {
+                        "ordering", "plan", "approval", "plate_pipeline", "qa", "revision", "packaging"
+                    }
+                    missing_defaults = sorted(required_defaults - set(defaults))
+                    if missing_defaults:
+                        errors.append(f"{preset}: default workflow missing {', '.join(missing_defaults)}")
                 warnings.extend(f"{preset.name}: {message}" for message in preset_warnings)
             except ValueError as exc:
                 errors.append(f"{preset}: {exc}")
@@ -144,7 +171,10 @@ def main() -> int:
     if args.json:
         print(json.dumps(report, indent=2, ensure_ascii=False))
     else:
-        print(f"Presets: {counts['presets']}; profiles: {counts['profiles']}; style references: {counts['style_references']}")
+        print(
+            f"Presets: {counts['presets']}; profiles: {counts['profiles']}; "
+            f"style references: {counts['style_references']}; workflow-gate files: {counts['workflow_gate_files']}"
+        )
         for warning in report["warnings"]:
             print(f"Warning: {warning}")
         if errors:

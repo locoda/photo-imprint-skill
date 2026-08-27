@@ -1,35 +1,81 @@
-# Quality checks
+# Quality and release gates
 
-## Blocking checks
+Automated metrics are diagnostic leads. They never substitute for opening each final page at full size and at phone scale.
 
-Every page must pass before delivery.
+## Plate gate
 
-1. **Dimensions**: identical requested dimensions and aspect ratio.
-2. **Subject integrity**: no missing identity-critical object, clipped vessel/building/landmark, accidental duplication, or distorted relationship.
-3. **Theme fidelity**: preserved elements match the selected theme profile; forbidden inventions are absent.
-4. **Subject/caption clearance**: no overlap; preserve the composition profile's minimum clearance.
-5. **Edge integration**: no unintended rectangular crop, mask edge, white fringe, or compositing seam.
-6. **Layer separation**: no generated typography, route, marker, watermark, border, or numbering in the clean subject plate.
-7. **Paper consistency**: the same paper master, color, texture scale, and finish across all pages.
-8. **Style consistency**: comparable line weight, edge treatment, detail density, and color behavior defined by the style profile.
-9. **Color consistency**: no unexplained outlier in brightness, black point, contrast, saturation, or color temperature.
-10. **Typography**: identical approved font, size, tracking, leading, color, alignment, coordinates, and line count.
-11. **Optional route**: exactly one line layer; no shadow, duplicate, branch, leftover segment, or jagged edge.
-12. **Route continuity**: adjacent boundaries match exactly; the line avoids every subject and caption.
-13. **Endpoints**: first page starts at its marker and last page ends at its marker; no line outside those nodes.
-14. **Watermark/disclosure**: exact approved text, consistent placement, and no accidental extra copy.
+For every model-rendered plate:
 
-## Series-level review
+```bash
+python3 bin/clean_plate.py normalize --input raw/02.png --config work/resolved-config.json \
+  --output work/plates/02.png --report work/plates/02-normalization.json
+python3 bin/clean_plate.py validate --input work/plates/02.png --config work/resolved-config.json \
+  --report work/plates/02-validation.json
+```
 
-Create and inspect:
-- color contact sheet;
-- grayscale contact sheet;
-- long-strip preview in final order;
-- enlarged boundary crops when a cross-slide element is enabled;
-- resolved config and source metadata for the active style.
+The active style profile determines whether cleanup is soft paper-keying, alpha-only validation, or disabled for intentionally opaque media. Blocking checks cover alpha, empty-area noise, corner contamination, rectangular seam risk, and hard border/frame risk. Texture belongs inside actual marks, not in empty background.
 
-Automated metric flags are leads, not proof. A legitimate dark dish, night landscape, or bright facade may differ from the median. Correct style drift, not the identity of the photographed subject.
+## Final QA generation
+
+```bash
+python3 bin/qa_images.py --input work/final --plates work/plates \
+  --render-plan work/render-plan.json --config work/resolved-config.json --output work/qa
+```
+
+This creates color/grayscale contact sheets, long strip, per-page 360×640 phone previews, diagnostics, and `review-checklist.json`.
+
+## Two independent acceptance dimensions
+
+### Page-level compliance
+
+Each page must independently pass:
+
+- its production-plan subject priority and thumbnail read;
+- identity anchors, material/depth cues, and structural-line operations;
+- absence of forbidden inventions;
+- background uniformity and clean subject-to-paper compositing;
+- no rectangular seam or forbidden frame;
+- full-size and phone-scale review.
+
+### Set-level cohesion
+
+The ordered set must independently pass:
+
+- overall visual cohesion;
+- shared paper consistency;
+- style and mark consistency;
+- typography consistency;
+- order/dimensions;
+- cross-page rhythm;
+- enabled/disabled route and other optional-module integrity.
+
+A page can comply while the set fails, or the set can look unified while one page violates its brief. Packaging is blocked in either case.
+
+Record evidence with `review_checklist.py record`; then validate:
+
+```bash
+python3 bin/review_checklist.py validate --checklist work/qa/review-checklist.json
+```
+
+Every blocking check needs `status: pass` and evidence. A contact sheet alone is insufficient; full-size and phone evidence files must exist for every page.
+
+## Verified staging and packaging
+
+```bash
+python3 bin/package_verified.py stage --input work/final --output work/staging-manifest.json
+# Run QA and complete the checklist against this locked stage.
+python3 bin/package_verified.py package --input work/final \
+  --staging-manifest work/staging-manifest.json \
+  --review-checklist work/qa/review-checklist.json \
+  --state work/approval-state.json \
+  --output dist/carousel.zip --manifest-output dist/release-manifest.json
+python3 bin/package_verified.py verify --zip dist/carousel.zip
+```
+
+Packaging includes only hash-locked numbered images plus `release-manifest.json`. It rejects changed/extra/missing stage files, incomplete page-level or set-level acceptance, changed QA evidence, unsafe ZIP members, checksum mismatches, and changed pages that a local revision promised to preserve.
+
+Artifact delivery must copy the verified staged ZIP/images. It must not regenerate artwork.
 
 ## Repair rule
 
-Fix the source layer that caused the defect. Re-render the subject plate or rebuild the deterministic overlay, then rerun the full check. Do not cover a defect with a patch that introduces a new seam, double line, or inconsistent paper area.
+Fix the source layer that caused a defect, then rerun plate validation, composition, both QA dimensions, staging, and ZIP verification. Do not hide defects with patches that create seams or inconsistent paper.

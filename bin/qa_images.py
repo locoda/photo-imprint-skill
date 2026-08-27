@@ -1,193 +1,150 @@
 #!/usr/bin/env python3
-"""Create series-level previews and consistency metrics for finished pages."""
-
+"""Create previews, diagnostic metrics, and a blocking manual-review checklist template."""
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import statistics
 from pathlib import Path
 
+import numpy as np
 from PIL import Image, ImageDraw, ImageFont, ImageStat
+from workflow_contracts import QA_PAGE_CHECKS, QA_SET_CHECKS
 
 SUPPORTED = {".jpg", ".jpeg", ".png", ".webp", ".tif", ".tiff"}
-DEFAULT_THRESHOLDS = {
-    "mean_luminance": 0.12,
-    "rms_contrast": 0.18,
-    "mean_saturation": 0.18,
-}
+DEFAULT_THRESHOLDS = {"mean_luminance": 0.12, "rms_contrast": 0.18, "mean_saturation": 0.18}
 
 
-def metrics(image: Image.Image) -> dict:
-    rgb = image.convert("RGB")
-    gray = rgb.convert("L")
-    hsv = rgb.convert("HSV")
-    lum = ImageStat.Stat(gray)
-    sat = ImageStat.Stat(hsv.getchannel("S"))
-    return {
-        "width": rgb.width,
-        "height": rgb.height,
-        "mean_luminance": round(lum.mean[0], 3),
-        "rms_contrast": round(lum.stddev[0], 3),
-        "mean_saturation": round(sat.mean[0], 3),
-    }
+def sha256(path: Path) -> str:
+    h=hashlib.sha256(); h.update(path.read_bytes()); return h.hexdigest()
 
+def metrics(image: Image.Image, paper_rgb: tuple[int,int,int]) -> dict:
+    rgb=image.convert("RGB"); arr=np.asarray(rgb,dtype=np.int16); gray=rgb.convert("L"); hsv=rgb.convert("HSV")
+    lum=ImageStat.Stat(gray); sat=ImageStat.Stat(hsv.getchannel("S"))
+    h,w,_=arr.shape; y=max(1,int(h*0.38)); x=max(1,int(w*0.78))
+    empty=arr[:y,:x]
+    dist=np.sqrt(np.sum((empty-np.array(paper_rgb,dtype=np.int16))**2,axis=2))
+    noise=float(np.mean(dist>8))
+    gy=np.abs(np.diff(arr.mean(axis=2),axis=0)); gx=np.abs(np.diff(arr.mean(axis=2),axis=1))
+    row=np.mean(gy,axis=1) if gy.size else np.array([0]); col=np.mean(gx,axis=0) if gx.size else np.array([0])
+    seam=max(float(np.max(row)),float(np.max(col))) if row.size and col.size else 0.0
+    edge=np.concatenate([arr[0].reshape(-1,3),arr[-1].reshape(-1,3),arr[:,0].reshape(-1,3),arr[:,-1].reshape(-1,3)])
+    edge_dark=float(np.mean(np.sqrt(np.sum((edge-np.array(paper_rgb))**2,axis=1))>35))
+    return {"width":w,"height":h,"mean_luminance":round(lum.mean[0],3),"rms_contrast":round(lum.stddev[0],3),
+        "mean_saturation":round(ImageStat.Stat(hsv.getchannel('S')).mean[0],3),
+        "empty_area_noise_ratio":round(noise,6),"max_axis_seam_gradient":round(seam,4),
+        "hard_edge_occupancy":round(edge_dark,6)}
 
-def relative_delta(value: float, median: float) -> float:
-    if median == 0:
-        return 0.0 if value == 0 else math.inf
-    return abs(value - median) / median
+def relative_delta(value:float,median:float)->float:
+    return 0.0 if median==0 and value==0 else (math.inf if median==0 else abs(value-median)/median)
 
+def hex_rgb(value:str)->tuple[int,int,int]:
+    value=value.lstrip('#'); return tuple(int(value[i:i+2],16) for i in (0,2,4))
 
-def load_config(path: Path | None) -> tuple[dict[str, float], bool, dict | None]:
-    if path is None:
-        return DEFAULT_THRESHOLDS.copy(), False, None
-    config = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(config, dict) or config.get("resolved") is not True:
-        raise ValueError(f"not a resolved carousel config: {path}")
-    raw = config.get("profiles", {}).get("unification", {}).get("qa_thresholds", {})
-    thresholds = {
-        "mean_luminance": float(raw.get("mean_luminance_relative_delta", DEFAULT_THRESHOLDS["mean_luminance"])),
-        "rms_contrast": float(raw.get("rms_contrast_relative_delta", DEFAULT_THRESHOLDS["rms_contrast"])),
-        "mean_saturation": float(raw.get("mean_saturation_relative_delta", DEFAULT_THRESHOLDS["mean_saturation"])),
-    }
-    route_enabled = bool(config.get("modules", {}).get("route", {}).get("enabled"))
-    return thresholds, route_enabled, config
+def load_config(path:Path|None):
+    if path is None:return DEFAULT_THRESHOLDS.copy(),False,None,(241,235,221)
+    config=json.loads(path.read_text())
+    if not isinstance(config,dict) or config.get('resolved') is not True:raise ValueError(f"not a resolved carousel config: {path}")
+    raw=config.get('profiles',{}).get('unification',{}).get('qa_thresholds',{})
+    thresholds={"mean_luminance":float(raw.get('mean_luminance_relative_delta',.12)),"rms_contrast":float(raw.get('rms_contrast_relative_delta',.18)),"mean_saturation":float(raw.get('mean_saturation_relative_delta',.18))}
+    route=bool(config.get('modules',{}).get('route',{}).get('enabled'))
+    paper=hex_rgb(config.get('profiles',{}).get('unification',{}).get('paper',{}).get('color','#F1EBDD'))
+    return thresholds,route,config,paper
 
+def build_sheet(images,output,grayscale=False):
+    tw,th,lh=270,480,34; cols=min(5,max(1,len(images))); rows=math.ceil(len(images)/cols)
+    sheet=Image.new('RGB',(cols*tw,rows*(th+lh)),'#E8E4DC'); draw=ImageDraw.Draw(sheet); font=ImageFont.load_default()
+    for i,(path,src) in enumerate(images):
+        r,c=divmod(i,cols); im=src.convert('L').convert('RGB') if grayscale else src.copy(); im.thumbnail((tw,th),Image.Resampling.LANCZOS)
+        x=c*tw+(tw-im.width)//2;y=r*(th+lh)+(th-im.height)//2;sheet.paste(im,(x,y));draw.text((c*tw+8,r*(th+lh)+th+8),path.name,fill='#3B3832',font=font)
+    output.parent.mkdir(parents=True,exist_ok=True);sheet.save(output,quality=94)
 
-def build_sheet(images: list[tuple[Path, Image.Image]], output: Path, grayscale: bool) -> None:
-    thumb_w, thumb_h, label_h = 270, 480, 34
-    columns = min(5, max(1, len(images)))
-    rows = math.ceil(len(images) / columns)
-    sheet = Image.new("RGB", (columns * thumb_w, rows * (thumb_h + label_h)), "#E8E4DC")
-    draw = ImageDraw.Draw(sheet)
-    font = ImageFont.load_default()
+def build_long_strip(images,output):
+    mh=max(im.height for _,im in images); norm=[im if im.height==mh else im.resize((round(im.width*mh/im.height),mh),Image.Resampling.LANCZOS) for _,im in images]
+    strip=Image.new('RGB',(sum(im.width for im in norm),mh),'#E8E4DC');x=0
+    for im in norm:strip.paste(im,(x,0));x+=im.width
+    if strip.width>8000:scale=8000/strip.width;strip=strip.resize((8000,max(1,round(strip.height*scale))),Image.Resampling.LANCZOS)
+    strip.save(output,quality=92)
 
-    for index, (path, source) in enumerate(images):
-        row, col = divmod(index, columns)
-        image = source.convert("L").convert("RGB") if grayscale else source.copy()
-        image.thumbnail((thumb_w, thumb_h), Image.Resampling.LANCZOS)
-        x = col * thumb_w + (thumb_w - image.width) // 2
-        y = row * (thumb_h + label_h) + (thumb_h - image.height) // 2
-        sheet.paste(image, (x, y))
-        draw.text((col * thumb_w + 8, row * (thumb_h + label_h) + thumb_h + 8), path.name, fill="#3B3832", font=font)
+def plate_diagnostics(directory: Path | None, stem: str) -> dict:
+    if directory is None:
+        return {"present": False, "has_alpha": False, "corner_alpha_mean": None, "subject_to_paper_ready": False}
+    candidates = [p for p in directory.iterdir() if p.is_file() and p.stem == stem and p.suffix.lower() in SUPPORTED]
+    if len(candidates) != 1:
+        return {"present": False, "has_alpha": False, "corner_alpha_mean": None, "subject_to_paper_ready": False}
+    with Image.open(candidates[0]) as image:
+        rgba = np.asarray(image.convert("RGBA"), dtype=np.uint8)
+        alpha = rgba[:, :, 3]
+        n = max(1, int(min(alpha.shape) * 0.03))
+        corners = np.concatenate([alpha[:n,:n].ravel(), alpha[:n,-n:].ravel(), alpha[-n:,:n].ravel(), alpha[-n:,-n:].ravel()])
+        has_alpha = image.mode in {"RGBA", "LA"} or "A" in image.getbands()
+        mean = float(corners.mean())
+    return {"present": True, "path": str(candidates[0].resolve()), "sha256": sha256(candidates[0]),
+        "has_alpha": has_alpha, "corner_alpha_mean": round(mean,4), "subject_to_paper_ready": has_alpha and mean <= 10}
 
-    output.parent.mkdir(parents=True, exist_ok=True)
-    sheet.save(output, quality=94)
+def build_phone(images,out):
+    out.mkdir(parents=True,exist_ok=True)
+    result={}
+    for path,im in images:
+        phone=im.copy();phone.thumbnail((360,640),Image.Resampling.LANCZOS);target=out/f"{path.stem}-phone.jpg";phone.convert('RGB').save(target,quality=92);result[path.name]=str(target.resolve())
+    return result
 
-
-def build_long_strip(images: list[tuple[Path, Image.Image]], output: Path) -> None:
-    max_h = max(image.height for _, image in images)
-    normalized: list[Image.Image] = []
-    for _, source in images:
-        if source.height == max_h:
-            normalized.append(source)
-        else:
-            width = round(source.width * max_h / source.height)
-            normalized.append(source.resize((width, max_h), Image.Resampling.LANCZOS))
-    strip = Image.new("RGB", (sum(image.width for image in normalized), max_h), "#E8E4DC")
-    x = 0
-    for image in normalized:
-        strip.paste(image, (x, 0))
-        x += image.width
-    if strip.width > 8000:
-        scale = 8000 / strip.width
-        strip = strip.resize((8000, max(1, round(strip.height * scale))), Image.Resampling.LANCZOS)
-    strip.save(output, quality=92)
-
-
-def build_boundary_sheet(images: list[tuple[Path, Image.Image]], output: Path, crop_width: int) -> None:
-    if len(images) < 2:
-        return
-    previews: list[tuple[str, Image.Image]] = []
-    for index in range(len(images) - 1):
-        left_name, left = images[index]
-        right_name, right = images[index + 1]
-        width = max(1, min(crop_width, left.width, right.width))
-        pair = Image.new("RGB", (width * 2, max(left.height, right.height)), "#E8E4DC")
-        pair.paste(left.crop((left.width - width, 0, left.width, left.height)), (0, 0))
-        pair.paste(right.crop((0, 0, width, right.height)), (width, 0))
-        pair.thumbnail((360, 720), Image.Resampling.LANCZOS)
-        previews.append((f"{left_name.name} | {right_name.name}", pair))
-
-    cell_w, cell_h, label_h = 380, 720, 36
-    columns = min(4, len(previews))
-    rows = math.ceil(len(previews) / columns)
-    sheet = Image.new("RGB", (columns * cell_w, rows * (cell_h + label_h)), "#E8E4DC")
-    draw = ImageDraw.Draw(sheet)
-    font = ImageFont.load_default()
-    for i, (label, image) in enumerate(previews):
-        row, col = divmod(i, columns)
-        x = col * cell_w + (cell_w - image.width) // 2
-        y = row * (cell_h + label_h) + (cell_h - image.height) // 2
-        sheet.paste(image, (x, y))
-        draw.text((col * cell_w + 8, row * (cell_h + label_h) + cell_h + 8), label, fill="#3B3832", font=font)
-    sheet.save(output, quality=94)
-
-
-def main() -> int:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--input", required=True, type=Path, help="Directory containing finished pages")
-    parser.add_argument("--output", required=True, type=Path, help="Directory for QA outputs")
-    parser.add_argument("--config", type=Path, help="Resolved config from resolve_config.py")
-    parser.add_argument("--boundary-width", type=int, default=48, help="Pixels sampled from each side of a page boundary")
-    args = parser.parse_args()
-
-    paths = sorted(p for p in args.input.iterdir() if p.is_file() and p.suffix.lower() in SUPPORTED)
-    if not paths:
-        parser.error("No supported image files found")
-    if args.boundary_width <= 0:
-        parser.error("--boundary-width must be positive")
-    try:
-        thresholds, route_enabled, config = load_config(args.config)
-    except (OSError, json.JSONDecodeError, ValueError) as exc:
-        parser.error(str(exc))
-
-    images: list[tuple[Path, Image.Image]] = []
+def main()->int:
+    p=argparse.ArgumentParser(description='Generate diagnostic previews and a two-dimension QA checklist template')
+    p.add_argument('--input',required=True,type=Path);p.add_argument('--output',required=True,type=Path);p.add_argument('--config',type=Path)
+    p.add_argument('--render-plan',type=Path,help='Render plan used to bind page-level checks to production briefs')
+    p.add_argument('--plates',type=Path,help='Normalized clean-plate directory')
+    p.add_argument('--checklist-output',type=Path,help='Defaults to <output>/review-checklist.json')
+    args=p.parse_args()
+    paths=sorted(x for x in args.input.iterdir() if x.is_file() and x.suffix.lower() in SUPPORTED)
+    if not paths:p.error('No supported image files found')
+    try:thresholds,route,config,paper=load_config(args.config)
+    except Exception as exc:p.error(str(exc))
+    plan=None
+    if args.render_plan:
+        plan=json.loads(args.render_plan.read_text()); expected_order=[f"{int(pg['page']):02d}" for pg in plan.get('pages',[])]
+        stems=[x.stem for x in paths]
+        if stems!=expected_order:p.error(f"finished-page order/names {stems} do not match plan {expected_order}")
+    images=[]
     for path in paths:
-        with Image.open(path) as image:
-            images.append((path, image.convert("RGB")))
-    rows = [{"filename": path.name, **metrics(image)} for path, image in images]
-
-    medians = {key: statistics.median(row[key] for row in rows) for key in DEFAULT_THRESHOLDS}
-    dimensions = {(row["width"], row["height"]) for row in rows}
-    expected = None
+        with Image.open(path) as im:images.append((path,im.convert('RGB')))
+    rows=[{"filename":path.name,"sha256":sha256(path),**metrics(im,paper),
+        "plate":plate_diagnostics(args.plates, path.stem)} for path,im in images]
+    medians={k:statistics.median(r[k] for r in rows) for k in DEFAULT_THRESHOLDS};dims={(r['width'],r['height']) for r in rows}
+    expected=None
     if config:
-        canvas = config.get("profiles", {}).get("composition", {}).get("canvas", {})
-        expected = (canvas.get("width"), canvas.get("height"))
-
-    for row in rows:
-        row["flags"] = [key for key, threshold in thresholds.items() if relative_delta(row[key], medians[key]) > threshold]
-        if len(dimensions) > 1:
-            row["flags"].append("dimensions")
-        if expected and (row["width"], row["height"]) != expected:
-            row["flags"].append("expected_dimensions")
-
-    args.output.mkdir(parents=True, exist_ok=True)
-    build_sheet(images, args.output / "contact-sheet-color.jpg", grayscale=False)
-    build_sheet(images, args.output / "contact-sheet-grayscale.jpg", grayscale=True)
-    build_long_strip(images, args.output / "long-strip.jpg")
-    if route_enabled:
-        build_boundary_sheet(images, args.output / "boundary-previews.jpg", args.boundary_width)
-
-    report = {
-        "schema_version": "1.0.0",
-        "image_count": len(rows),
-        "uniform_dimensions": len(dimensions) == 1,
-        "expected_dimensions": list(expected) if expected else None,
-        "matches_expected_dimensions": bool(expected and dimensions == {expected}) if expected else None,
-        "route_enabled": route_enabled,
-        "medians": medians,
-        "thresholds": thresholds,
-        "metric_flags_are_review_leads_not_failures": True,
-        "manual_checks_required": ["subject_integrity", "theme_fidelity", "edge_integration", "layer_separation", "paper_consistency", "style_consistency", "typography_consistency"] + (["route_continuity", "route_endpoints", "route_avoidance"] if route_enabled else []),
-        "images": rows,
-    }
-    (args.output / "qa-report.json").write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    print(f"Wrote QA outputs to {args.output}")
+        c=config.get('profiles',{}).get('composition',{}).get('canvas',{});expected=(c.get('width'),c.get('height'))
+    for r in rows:
+        r['metric_flags']=[k for k,t in thresholds.items() if relative_delta(r[k],medians[k])>t]
+        r['diagnostic_flags']=[]
+        if r['empty_area_noise_ratio']>.02:r['diagnostic_flags'].append('background_uniformity_review')
+        if r['max_axis_seam_gradient']>22:r['diagnostic_flags'].append('rectangular_seam_risk_review')
+        if r['hard_edge_occupancy']>.25:r['diagnostic_flags'].append('hard_border_frame_risk_review')
+        if args.plates is not None and not r['plate']['subject_to_paper_ready']:
+            r['diagnostic_flags'].append('subject_to_paper_compositing_review')
+        if len(dims)>1:r['diagnostic_flags'].append('dimensions')
+        if expected and (r['width'],r['height'])!=expected:r['diagnostic_flags'].append('expected_dimensions')
+    args.output.mkdir(parents=True,exist_ok=True)
+    build_sheet(images,args.output/'contact-sheet-color.jpg',False);build_sheet(images,args.output/'contact-sheet-grayscale.jpg',True);build_long_strip(images,args.output/'long-strip.jpg')
+    phone=build_phone(images,args.output/'phone')
+    report={"schema_version":"2.0.0","image_count":len(rows),"uniform_dimensions":len(dims)==1,"expected_dimensions":list(expected) if expected else None,
+        "matches_expected_dimensions":bool(expected and dims=={expected}) if expected else None,"route_enabled":route,"medians":medians,"thresholds":thresholds,
+        "metric_flags_are_review_leads_not_acceptance":True,"acceptance_dimensions":["page_level_compliance","set_level_cohesion"],"images":rows}
+    report_path=args.output/'qa-report.json';report_path.write_text(json.dumps(report,indent=2,ensure_ascii=False)+'\n')
+    page_entries=[]
+    plan_pages=plan.get('pages',[]) if plan else [{} for _ in rows]
+    for row,page in zip(rows,plan_pages):
+        page_entries.append({"page":page.get('page'),"filename":row['filename'],"sha256":row['sha256'],"production_brief":page.get('production_brief'),
+            "full_size_evidence":str((args.input/row['filename']).resolve()),"phone_scale_evidence":phone[row['filename']],
+            "automated_diagnostics":{"flags":row['diagnostic_flags'],"metrics":{k:row[k] for k in ('empty_area_noise_ratio','max_axis_seam_gradient','hard_edge_occupancy')}},
+            "checks":{check:{"status":"pending","evidence":"","note":""} for check in QA_PAGE_CHECKS}})
+    checklist={"schema_version":"1.0.0","qa_report_path":str(report_path.resolve()),"qa_report_sha256":sha256(report_path),
+        "page_level_compliance":{"status":"pending","pages":page_entries},
+        "set_level_cohesion":{"status":"pending","checks":{check:{"status":"pending","evidence":"","note":""} for check in QA_SET_CHECKS}},
+        "packaging_blocked_until_both_dimensions_pass":True}
+    checklist_path=args.checklist_output or args.output/'review-checklist.json';checklist_path.write_text(json.dumps(checklist,indent=2,ensure_ascii=False)+'\n')
+    print(f"Wrote QA outputs and pending review checklist to {args.output}")
     return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
+if __name__=='__main__':raise SystemExit(main())

@@ -55,6 +55,16 @@ def inspect(path: Path) -> dict:
             "location": None,
             "subject": None,
             "date_label": capture_time[:10] if capture_time else None,
+            "caption_status": {},
+            "production_brief": {
+                "subject_priority": None,
+                "thumbnail_read": None,
+                "preserve_anchors": [],
+                "abstract_or_omit": [],
+                "material_depth_cues": [],
+                "structural_lines": [],
+                "forbidden_inventions": [],
+            },
             "notes": None,
         }
 
@@ -117,15 +127,40 @@ def main() -> int:
         caption_fields = config["modules"]["caption"].get("lines", [])
         manifest_field = {"date": "date_label"}
         for record in ordered:
-            missing = [field for field in caption_fields if not record.get(manifest_field.get(field, field))]
+            record["caption_status"] = {
+                field: ("proposed" if record.get(manifest_field.get(field, field)) else "missing")
+                for field in caption_fields
+            }
+            missing = [field for field, status in record["caption_status"].items() if status == "missing"]
             if missing:
                 unconfirmed_fields.append({"page": record["page"], "fields": missing})
+
+    unconfirmed_briefs = [
+        {
+            "page": record["page"],
+            "fields": [
+                "subject_priority", "thumbnail_read", "preserve_anchors", "abstract_or_omit",
+                "material_depth_cues", "structural_lines", "forbidden_inventions",
+            ],
+        }
+        for record in ordered
+    ]
+    style_contract = None
+    if config:
+        style_contract = config.get("profiles", {}).get("style", {}).get("sample_style_contract_defaults")
 
     payload = {
         "schema_version": "1.0.0",
         "ordering": "EXIF capture time ascending; undated files require user confirmation",
-        "requires_user_confirmation": bool(failures or unconfirmed_fields),
+        "requires_user_confirmation": bool(failures or unconfirmed_fields or unconfirmed_briefs),
         "unconfirmed_caption_fields": unconfirmed_fields,
+        "unconfirmed_production_briefs": unconfirmed_briefs,
+        "sample_style_contract": style_contract,
+        "review_gate": {
+            "status": "intake_complete",
+            "next_step": "propose every production_brief field, then build the production plan",
+            "batch_render_authorized": False,
+        },
         "preset": config.get("preset") if config else None,
         "profile_ids": ({key: value.get("id") for key, value in config.get("profiles", {}).items()} if config else None),
         "canvas": (config.get("profiles", {}).get("composition", {}).get("canvas") if config else None),

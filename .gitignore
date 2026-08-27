@@ -1,0 +1,6 @@
+# Reference images stay local until their rights and instructional value are approved.
+/assets/style-packs/*/reference.*
+
+# Python cache files.
+__pycache__/
+*.py[cod]

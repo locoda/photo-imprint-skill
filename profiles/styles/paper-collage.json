@@ -1,0 +1,13 @@
+{
+  "profile_type": "style",
+  "id": "paper-collage",
+  "version": "1.0.0",
+  "reference_status": "pending-selection",
+  "references": [],
+  "positive_prompt": "Editorial paper collage assembled from cut and torn matte papers, restrained ephemera-like line fragments, visible fiber and gentle overlap, shallow physical depth, warm archival palette, intentional negative space.",
+  "negative_prompt": "No copied historical ornament, copied handwriting, readable source text, scrapbook page replica, glossy sticker effect, photorealistic drop shadow, generated typography, route line, marker, or watermark.",
+  "line": {"weight": "mixed", "character": "printed fragments and drawn accents", "color": "charcoal and faded sepia"},
+  "color": {"saturation": "low-to-medium", "transparency": "opaque-paper", "temperature": "warm"},
+  "edges": {"subject": "cut-and-torn", "crop_marks": false},
+  "finishing_notes": ["keep layer seams intentional", "use shallow shadows consistently", "derive structure, not motifs, from the reference"]
+}

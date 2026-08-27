@@ -1,0 +1,13 @@
+{
+  "profile_type": "style",
+  "id": "botanical-watercolor",
+  "version": "1.0.0",
+  "reference_status": "pending-selection",
+  "references": [],
+  "positive_prompt": "Precise botanical watercolor study over faint graphite, airy ivory paper, sparse composition, delicate stems and edges, translucent natural color, disciplined observational detail.",
+  "negative_prompt": "No photographic background, oil-paint impasto, hard digital vector edge, heavy shadow, generated labels, decorative frame, route line, marker, watermark, or collage seam.",
+  "line": {"weight": "hairline", "character": "controlled graphite and watercolor", "color": "warm graphite"},
+  "color": {"saturation": "restrained-natural", "transparency": "medium-high", "temperature": "neutral-warm"},
+  "edges": {"subject": "precise-organic", "crop_marks": false},
+  "finishing_notes": ["preserve fine edges", "keep background nearly unpainted", "avoid global sharpening halos"]
+}

@@ -1,0 +1,36 @@
+{
+  "preset": "travel-food-journal",
+  "version": "1.0.0",
+  "profiles": {
+    "theme": "food",
+    "style": "watercolor-journal",
+    "layers": "journal-separated",
+    "composition": "vertical-journal",
+    "unification": "warm-paper-journal"
+  },
+  "modules": {
+    "caption": {
+      "enabled": true,
+      "lines": ["location", "subject", "date"],
+      "date_format": "YYYY-MM-DD",
+      "font_family": "Noto Sans Light",
+      "font_size_at_1080px": 30,
+      "color": "#3B3832"
+    },
+    "route": {
+      "enabled": true,
+      "color": "#A56F5A",
+      "opacity": 0.62,
+      "width_at_1080px": 3,
+      "hand_drawn": true,
+      "anti_alias": true,
+      "avoid_subjects": true,
+      "markers": {"enabled": true, "start": true, "end": true}
+    },
+    "watermark": {"enabled": true, "text": "@1mether", "position": "top-right"},
+    "disclosure": {"enabled": false, "text": "Photos were transformed into a hand-drawn style with AI."},
+    "numbering": {"enabled": false}
+  },
+  "export": {"numbered_filenames": true, "zip": true, "include_manifest": true, "include_resolved_config": true, "include_qa_report": true},
+  "overrides": {}
+}

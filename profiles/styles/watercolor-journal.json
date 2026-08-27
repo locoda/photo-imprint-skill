@@ -1,0 +1,13 @@
+{
+  "profile_type": "style",
+  "id": "watercolor-journal",
+  "version": "1.0.0",
+  "reference_status": "pending-selection",
+  "references": [],
+  "positive_prompt": "Loose fine-line observational drawing with subtle natural wobble; transparent restrained low-saturation watercolor; warm matte off-white paper influence; preserved object relationships; quiet editorial travel-journal character; soft edges that merge naturally into paper.",
+  "negative_prompt": "No stamp, linocut, woodcut, vector icon, spot-color print, heavy black outline, distressed ink, generated typography, decorative border, route line, marker, watermark, collage seam, rectangular crop edge, white fringe, or pasted-photo artifact.",
+  "line": {"weight": "fine", "character": "observational, slightly irregular", "color": "soft charcoal-brown"},
+  "color": {"saturation": "low", "transparency": "high", "temperature": "warm-neutral"},
+  "edges": {"subject": "soft-natural", "crop_marks": false},
+  "finishing_notes": ["protect delicate linework", "avoid crushing pale washes", "retain paper breathing room"]
+}

@@ -1,7 +1,7 @@
 ---
 name: "photo_imprint"
 version: "1.2.0"
-description: "Photo Imprint (印痕) - Turn photos into a consistent illustrated social-media carousel (including 照片转手绘轮播): EXIF ordering, source-specific visual briefs, a plan+sample approval gate, clean-plate normalization, deterministic composition, typed revisions, two-level visual QA, and verified packaging. English skill; repo locoda/photo-imprint-skill."
+description: "Photo Imprint (印痕) - Use when turning photos into a consistent illustrated social-media carousel (including 照片转手绘轮播): EXIF ordering, source-specific visual briefs, a plan+sample approval gate, clean-plate normalization, deterministic composition, typed revisions, two-level visual QA, and verified packaging. English skill; repo locoda/photo-imprint-skill."
 ---
 
 # Photo Imprint (印痕)

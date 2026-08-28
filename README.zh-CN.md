@@ -12,16 +12,16 @@
 
 直接用 prompt 渲，好看但会忘掉你的照片。Photo Imprint 锁定杯/瓶的轮廓、比例、盖子、logo 位置，只在笔触上抽象。
 
-| 原片 | Photo Imprint（Template B – drink-minimal-caption-above） |
+| 原片（已模糊处理，保护隐私） | Photo Imprint（Template B – drink-minimal-caption-above） |
 |---|---|
-| ![原片 01](assets/samples/source-01.webp) | ![印痕 01](assets/samples/01-sjc-small-cup-paper-locked-v11.webp) |
-| SJC Airport – 小杯、绿饮、透明盖 | 同一个杯、同一个盖、同样比例。50% 留白，caption 在 y=300/367，扩散只在贴边 2-3 处，≤10% 宽度 |
-| ![原片 02](assets/samples/source-02.webp) | ![印痕 02](assets/samples/02-in-flight-paper-locked-v11.webp) |
-| 飞机上端杯 | 杯型锁定，机舱简化成冷色块，不编造天空 |
-| ![原片 03](assets/samples/source-03.webp) | ![印痕 03](assets/samples/03-roppongi-paper-locked-v11.webp) |
-| 六本木街头杯 | 杯型锁定，背景强简化，不编造东京塔 |
+| ![原片 01 已模糊](assets/samples/source-01.webp) | ![印痕 01](assets/samples/01-sjc-small-cup-paper-locked-v11.webp) |
+| SJC Airport – 小杯、绿饮、透明盖（原片 12px 模糊） | 同一个杯、同一个盖、同样比例。50% 留白，caption 在 y=300/367，扩散只在贴边 2-3 处，≤10% 宽度 |
+| ![原片 02 已模糊](assets/samples/source-02.webp) | ![印痕 02](assets/samples/02-in-flight-paper-locked-v11.webp) |
+| 飞机上端杯（原片已模糊） | 杯型锁定，机舱简化成冷色块，不编造天空 |
+| ![原片 03 已模糊](assets/samples/source-03.webp) | ![印痕 03](assets/samples/03-roppongi-paper-locked-v11.webp) |
+| 六本木街头杯（原片已模糊） | 杯型锁定，背景强简化，不编造东京塔 |
 
-所有样张已本地压缩成 webp <100KB，放在 `assets/samples/`，可直接发版。完整 1152×2048 终版 jpg 399–430KB，无 EXIF。
+所有样张已本地压缩成 webp <100KB，放在 `assets/samples/`，原片 12px 模糊保护隐私。完整 1152×2048 终版 jpg 399–430KB，无 EXIF。
 
 Template A（travel-scene-caption-below，图在上字在下）同理，给 2-3 张背景干净的旅行照就能补一个例子。
 

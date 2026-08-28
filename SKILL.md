@@ -1,10 +1,10 @@
 ---
-name: "photo_to_illustration_carousel"
+name: "photo_imprint"
 version: "1.2.0"
-description: "Use when a user asks to turn photos into a consistent illustrated social-media carousel (including 照片转手绘轮播): EXIF ordering, source-specific visual briefs, a plan+sample approval gate, clean-plate normalization, deterministic composition, typed revisions, two-level visual QA, and verified packaging."
+description: "Photo Imprint (印痕) - Turn photos into a consistent illustrated social-media carousel (including 照片转手绘轮播): EXIF ordering, source-specific visual briefs, a plan+sample approval gate, clean-plate normalization, deterministic composition, typed revisions, two-level visual QA, and verified packaging. English skill; repo locoda/photo-imprint-skill."
 ---
 
-# Photo-to-Illustration Carousel
+# Photo Imprint (印痕)
 
 ## Purpose
 Convert photos into one coherent illustrated carousel while keeping five controls independent: theme, style, layers, composition, and unification. `presets/travel-food-journal.json` supplies complete workflow defaults; actual subject plates still require a configured renderer and validated receipt. Two independent, opt-in Smithsonian reference packs are bundled: `blue-lavender-watercolor` and `highway-485-lithograph`; neither replaces the preset default or may contribute its depicted subjects. See `references/configuration.md` for defaults and overrides.

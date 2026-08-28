@@ -56,9 +56,17 @@ def main() -> int:
         print("Render-plan validation failed:\n- " + "\n- ".join(unresolved), file=sys.stderr)
         return 2
 
+    style_subject_exclusions = [
+        exclusion
+        for reference in style.get("references", [])
+        if isinstance(reference, dict)
+        for exclusion in reference.get("subject_exclusions", [])
+        if isinstance(exclusion, str) and exclusion
+    ]
     global_forbidden = list(dict.fromkeys(
         list(theme.get("forbid_invention", [])) +
-        list(layers.get("layers", {}).get("subject", {}).get("forbidden_content", []))
+        list(layers.get("layers", {}).get("subject", {}).get("forbidden_content", [])) +
+        style_subject_exclusions
     ))
     pages = []
     for index, item in enumerate(items):
@@ -130,6 +138,7 @@ def main() -> int:
             "source_metadata_path": str(metadata.resolve()),
             "source_metadata_sha256": digest(metadata) if metadata.is_file() else None,
             "technique_roles": reference.get("technique_roles", []),
+            "subject_exclusions": reference.get("subject_exclusions", []),
         })
     plan = {
         "schema_version": "2.0.0", "preset": config.get("preset"),

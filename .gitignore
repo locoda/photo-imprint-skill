@@ -1,5 +1,12 @@
 # Reference images stay local until their rights and instructional value are approved.
 /assets/style-packs/*/reference.*
+# Explicitly approved, redistributable Smithsonian derivatives are bundled.
+!/assets/style-packs/blue-lavender-watercolor/reference.webp
+!/assets/style-packs/highway-485-lithograph/reference.webp
+
+# Generated project state and deliverables stay out of the skill repository.
+/work/
+/dist/
 
 # Python cache files.
 __pycache__/

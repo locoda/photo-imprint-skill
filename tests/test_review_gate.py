@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import subprocess
 import sys
@@ -75,7 +76,7 @@ class ReviewGateTests(unittest.TestCase):
         for index, item in enumerate(manifest["items"]):
             item["location"] = f"LOCATION {index + 1}"
             item["subject"] = f"SUBJECT {index + 1}"
-            item["caption_status"] = {"location": "proposed", "subject": "proposed", "date": "proposed"}
+            item["caption_status"] = {"location": "confirmed", "subject": "confirmed", "date": "confirmed"}
             item["production_brief"] = {
                 "subject_priority": priorities[index],
                 "thumbnail_read": f"thumbnail read {index + 1}",
@@ -103,6 +104,20 @@ class ReviewGateTests(unittest.TestCase):
             "--state-output", state,
         )
         return render_plan, production_plan, state
+
+    def renderer_receipt(self, render_plan: Path, sample_plate: Path) -> Path:
+        source = json.loads(render_plan.read_text())["pages"][0]["source_path"]
+        receipt = self.work / "renderer-receipt.json"
+        run(
+            "renderer_receipt.py", "register",
+            "--output", receipt,
+            "--renderer-kind", "local",
+            "--model", "fixture-renderer", "--model-version", "1", "--seed", "7",
+            "--settings-json", '{"mode":"fixture"}',
+            "--source", f"page-1={source}",
+            "--rendered-output", f"page-1={sample_plate}",
+        )
+        return receipt
 
     def test_plan_contains_required_review_information(self) -> None:
         render_plan, production_plan, state = self.prepare_plan()
@@ -140,7 +155,26 @@ class ReviewGateTests(unittest.TestCase):
         sample_plate = self.work / "sample-plate.png"
         Image.new("RGBA", (1152, 2048), (0, 0, 0, 0)).save(sample)
         Image.new("RGBA", (1152, 2048), (0, 0, 0, 0)).save(sample_plate)
-        run("review_gate.py", "register-sample", "--state", state, "--sample", sample, "--sample-plate", sample_plate)
+        no_receipt = run("review_gate.py", "register-sample", "--state", state, "--sample", sample,
+            "--sample-plate", sample_plate, ok=False)
+        self.assertNotEqual(no_receipt.returncode, 0)
+        self.assertIn("renderer-record", no_receipt.stderr.lower())
+        receipt = self.renderer_receipt(render_plan, sample_plate)
+        extra_output = self.work / "unauthorized-page-2.png"
+        Image.new("RGBA", (1152, 2048), (0, 0, 0, 0)).save(extra_output)
+        overbroad = json.loads(receipt.read_text())
+        overbroad["rendered_outputs"].append({
+            "name": extra_output.name, "path": str(extra_output.resolve()),
+            "sha256": hashlib.sha256(extra_output.read_bytes()).hexdigest(), "bytes": extra_output.stat().st_size,
+        })
+        receipt.write_text(json.dumps(overbroad))
+        extra_blocked = run("review_gate.py", "register-sample", "--state", state, "--sample", sample,
+            "--sample-plate", sample_plate, "--renderer-record", receipt, ok=False)
+        self.assertNotEqual(extra_blocked.returncode, 0)
+        self.assertIn("exactly the normalized sample plate", extra_blocked.stderr.lower())
+        receipt = self.renderer_receipt(render_plan, sample_plate)
+        run("review_gate.py", "register-sample", "--state", state, "--sample", sample, "--sample-plate", sample_plate,
+            "--renderer-record", receipt)
         still_blocked = run(
             "render_scope.py", "--render-plan", render_plan, "--state", state,
             "--mode", "batch", "--output", self.work / "batch.json", ok=False,
@@ -185,7 +219,9 @@ class ReviewGateTests(unittest.TestCase):
         sample_plate = self.work / "sample-plate.png"
         Image.new("RGBA", (1152, 2048), (0, 0, 0, 0)).save(sample)
         Image.new("RGBA", (1152, 2048), (0, 0, 0, 0)).save(sample_plate)
-        run("review_gate.py", "register-sample", "--state", state, "--sample", sample, "--sample-plate", sample_plate)
+        receipt = self.renderer_receipt(render_plan, sample_plate)
+        run("review_gate.py", "register-sample", "--state", state, "--sample", sample, "--sample-plate", sample_plate,
+            "--renderer-record", receipt)
         run(
             "review_gate.py", "mark-shown", "--state", state,
             "--presentation-mode", "faithful-summary",

@@ -2,9 +2,9 @@
 
 A preset composes five reusable profiles: theme, style, layers, composition, and unification. Project-specific choices belong in the manifest or preset overrides, never by editing a reusable profile.
 
-## Complete default
+## Complete workflow default
 
-`presets/travel-food-journal.json` is executable end to end once factual captions and source-specific page decisions are supplied. It defaults to:
+`presets/travel-food-journal.json` supplies every workflow and visual default that can be chosen generically. It becomes executable only after factual captions, source-specific page decisions, a configured font, and actual rendered plates with validated renderer receipts are supplied. The skill does not silently select or impersonate an image-generation backend. It defaults to:
 
 - EXIF ascending order;
 - mandatory production-plan Markdown;
@@ -12,15 +12,23 @@ A preset composes five reusable profiles: theme, style, layers, composition, and
 - plan decisions communicated either by sending the Markdown artifact or by a faithful summary, always discussed with the sample;
 - explicit user approval before pages 2..N;
 - the generated sample never serving as a style reference;
+- no renderer backend selected by default and a validated receipt required for every rendered output;
+- separate explicit consent before private references may be sent to an external image service;
 - active-style plate normalization and validation;
 - full-size and 360×640 phone review of every page;
 - separate page-level compliance and set-level cohesion gates;
 - typed page-local revision operations;
-- hash-locked staging and verified ZIP packaging.
+- hash-locked staging and verified ZIP packaging;
+- watermark disabled until a project explicitly supplies and enables its own text;
+- deterministic final outputs stripped of EXIF, GPS, and XMP metadata.
 
 It also supplies the existing 9:16 food-journal visual profiles, captions, route, watermark, and export choices. These workflow defaults remove optional setup decisions, but **never authorize invention**: EXIF gaps, locations, caption facts, page subject priorities, identifying anchors, material/depth cues, structural lines, and forbidden inventions still require source evidence or user input.
 
-Override reusable visual behavior with `overrides.<concern>`. Override workflow defaults in a copied project preset under `workflow_defaults`; do not put Highway 485-specific line or subject rules in the universal default.
+Override reusable visual behavior with `overrides.<concern>`. Override workflow defaults in a copied project preset under `workflow_defaults`; do not put project-specific line or subject rules in the universal default.
+
+## Style selection
+
+`profiles.style` selects exactly one style profile. The bundled opt-in profiles `blue-lavender-watercolor` and `highway-485-lithograph` are independent initial references and are never blended implicitly. Each declares both reproducible `technique_roles` and `subject_exclusions`; only the former may influence rendering. The reusable preset continues to select `watercolor-journal` unless a copied project preset explicitly names another style.
 
 ## Rich per-page production brief
 

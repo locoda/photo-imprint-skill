@@ -11,6 +11,9 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from renderer_receipt import load as load_renderer_receipt, validate as validate_renderer_receipt
+from review_gate import verify_receipt_scope, verify_sample
+
 
 def digest(path: Path) -> str:
     h = hashlib.sha256()
@@ -35,6 +38,30 @@ def verify_locked(path: Path, expected: object, label: str) -> None:
         raise ValueError(f"{label} is missing: {path}")
     if not isinstance(expected, str) or digest(path) != expected:
         raise ValueError(f"{label} changed after the review state was created; rebuild and re-review")
+
+
+def verify_batch_inputs(plan: dict[str, Any], pages: list[dict[str, Any]]) -> None:
+    caption = plan.get("modules", {}).get("caption", {})
+    caption_fields = caption.get("lines", []) if caption.get("enabled") else []
+    for page in pages:
+        number = page.get("page")
+        source = Path(str(page.get("source_path", "")))
+        expected = page.get("source_sha256")
+        if not source.is_file() or not isinstance(expected, str) or digest(source) != expected:
+            raise ValueError(f"page {number} source is missing or changed; rebuild and re-review before batch rendering")
+        if caption_fields:
+            statuses = page.get("caption_status")
+            data = page.get("caption_data")
+            if not isinstance(statuses, dict) or not isinstance(data, dict):
+                raise ValueError(f"page {number} caption confirmation record is missing")
+            unconfirmed = [
+                field for field in caption_fields
+                if statuses.get(field) != "confirmed" or data.get(field) in (None, "")
+            ]
+            if unconfirmed:
+                raise ValueError(
+                    f"page {number} caption fields are not confirmed: {', '.join(unconfirmed)}"
+                )
 
 
 def main() -> int:
@@ -79,11 +106,33 @@ def main() -> int:
             sample_plate = Path(state.get("sample_plate_path", ""))
             verify_locked(sample_plate, state.get("sample_plate_sha256"), "registered normalized sample plate")
             renderer = state.get("renderer_record")
-            if isinstance(renderer, dict):
-                verify_locked(Path(str(renderer.get("path", ""))), renderer.get("sha256"), "renderer record")
+            if not isinstance(renderer, dict):
+                raise ValueError("validated renderer receipt is required before batch rendering")
+            renderer_path = Path(str(renderer.get("path", "")))
+            verify_locked(renderer_path, renderer.get("sha256"), "renderer record")
+            receipt = load_renderer_receipt(renderer_path)
+            receipt_errors = validate_renderer_receipt(receipt, check_files=True, require_rendered_output=True)
+            if receipt_errors:
+                raise ValueError("renderer record is invalid: " + "; ".join(receipt_errors))
+            verify_receipt_scope(receipt, plan, state.get("sample_page"))
+            plate_evidence = (str(sample_plate.resolve()), state.get("sample_plate_sha256"))
+            outputs = {
+                (str(Path(str(entry.get("path", ""))).resolve()), entry.get("sha256"))
+                for entry in receipt.get("rendered_outputs", []) if isinstance(entry, dict)
+            }
+            if plate_evidence not in outputs:
+                raise ValueError("renderer record does not hash-lock the approved sample plate")
+            verify_sample(state)
             if plan.get("sample_style_contract", {}).get("generated_page_is_style_reference") is not False:
                 raise ValueError("sample style contract must forbid using a generated page as a style reference")
-            selected = pages[1:]
+            verify_batch_inputs(plan, pages)
+            expected_sample = pages[0].get("page")
+            expected_batch = [page.get("page") for page in pages[1:]]
+            if state.get("sample_page") != expected_sample:
+                raise ValueError("approval state sample page does not match the first render-plan page")
+            if state.get("permitted_render_pages") != expected_batch or state.get("blocked_render_pages") != []:
+                raise ValueError("approval state authorization scope does not exactly match pages 2..N")
+            selected = [page for page in pages if page.get("page") in state["permitted_render_pages"]]
             gate_note = (
                 "Explicit approval verified; render only pages 2..N from this scope."
                 if selected else

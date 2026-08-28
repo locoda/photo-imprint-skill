@@ -1,6 +1,6 @@
 # Quality and release gates
 
-Automated metrics are diagnostic leads. They never substitute for opening each final page at full size and at phone scale.
+Automated style-consistency metrics are diagnostic leads; they never substitute for opening each final page at full size and at phone scale. Machine-verifiable facts are different: expected dimensions, plate readiness/validation, severe background/seam/frame diagnostics, current hashes, metadata absence, and QA-to-stage identity are non-overridable hard gates.
 
 ## Plate gate
 
@@ -68,11 +68,12 @@ python3 bin/package_verified.py package --input work/final \
   --staging-manifest work/staging-manifest.json \
   --review-checklist work/qa/review-checklist.json \
   --state work/approval-state.json \
+  --composition-manifest work/final/composition-manifest.json \
   --output dist/carousel.zip --manifest-output dist/release-manifest.json
-python3 bin/package_verified.py verify --zip dist/carousel.zip
+python3 bin/package_verified.py verify --zip dist/carousel.zip --manifest dist/release-manifest.json
 ```
 
-Packaging includes only hash-locked numbered images plus `release-manifest.json`. It rejects changed/extra/missing stage files, incomplete page-level or set-level acceptance, changed QA evidence, unsafe ZIP members, checksum mismatches, and changed pages that a local revision promised to preserve.
+Packaging includes only hash-locked numbered images plus `release-manifest.json`. It requires the deterministic composition manifest and rejects changed/extra/missing stage files; source, caption, renderer-receipt, reference, plate, font, config, or render-plan drift; a mismatch between composed, QA-reviewed, and staged page hashes; incomplete page-level or set-level acceptance; changed QA evidence; unsafe ZIP members; checksum mismatches; EXIF/GPS/XMP metadata; and changed pages that a local revision promised to preserve. Manual `pass` entries cannot override objective failures. Release evidence stores hashes and basenames, not local filesystem paths.
 
 Artifact delivery must copy the verified staged ZIP/images. It must not regenerate artwork.
 

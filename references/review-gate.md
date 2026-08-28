@@ -5,7 +5,7 @@
 1. Resolve configuration and EXIF-order sources.
 2. Complete every rich `production_brief` and the project `sample_style_contract`.
 3. Build `render-plan.json` and the mandatory `production-plan.md`.
-4. Render only the first EXIF page, normalize its clean plate, compose it, and register both files.
+4. Render only the first EXIF page, record and validate its renderer receipt, normalize its clean plate, compose it deterministically, and register the plate, composed sample, and receipt.
 5. Communicate the plan decisions and discuss them together with the sample.
 6. Record the discussion mode and evidence.
 7. Copy the user's exact explicit approval into the gate.
@@ -17,7 +17,8 @@ The Markdown file must always exist. It need not always be sent as a file: `mark
 python3 bin/review_gate.py register-sample \
   --state work/approval-state.json \
   --sample-plate work/sample/01-plate.png \
-  --sample work/sample/01.webp
+  --sample work/sample/01.png \
+  --renderer-record work/sample-renderer-receipt.json
 
 python3 bin/review_gate.py mark-shown \
   --state work/approval-state.json \
@@ -36,7 +37,7 @@ python3 bin/review_gate.py approve \
   --explicit-user-approval
 ```
 
-The gate locks the resolved config, render plan, Markdown plan, approved reference image/metadata hashes, normalized sample plate, composed sample, and structured sample style contract. `register-sample --renderer-record <file>` may additionally lock model/version/seed/settings when the renderer exposes them. The generated sample is never a style reference.
+The gate locks the resolved config, render plan, Markdown plan, approved reference image/metadata hashes, normalized sample plate, composed sample, validated renderer receipt, and structured sample style contract. The receipt records model/version/seed/settings and source/reference/output hashes; a `not-configured` receipt is an explicit blocker. For an external renderer, permission to store a private reference locally remains separate from explicit, service-scoped permission to transmit it. The generated sample is never a style reference.
 
 ## What is not approval
 

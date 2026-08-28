@@ -99,6 +99,95 @@ def validate_style_contract(contract: object, prefix: str = "sample_style_contra
     return errors
 
 
+def validate_current_sources_and_captions(plan: object) -> list[str]:
+    """Validate immutable source bytes and confirmed caption fields in a render plan."""
+    if not isinstance(plan, dict):
+        return ["render plan must be an object"]
+    errors: list[str] = []
+    pages = plan.get("pages")
+    if not isinstance(pages, list) or not pages:
+        return ["render plan must contain pages"]
+    caption = plan.get("modules", {}).get("caption", {})
+    caption_fields = caption.get("lines", []) if isinstance(caption, dict) and caption.get("enabled") else []
+    for page in pages:
+        if not isinstance(page, dict):
+            errors.append("render plan page must be an object")
+            continue
+        number = page.get("page")
+        source = Path(str(page.get("source_path", "")))
+        expected = page.get("source_sha256")
+        if not source.is_file() or not isinstance(expected, str) or digest(source) != expected:
+            errors.append(f"page {number} source is missing or changed")
+        if caption_fields:
+            statuses = page.get("caption_status")
+            data = page.get("caption_data")
+            if not isinstance(statuses, dict) or not isinstance(data, dict):
+                errors.append(f"page {number} caption confirmation record is missing")
+                continue
+            unconfirmed = [
+                field for field in caption_fields
+                if statuses.get(field) != "confirmed" or not nonempty_string(data.get(field))
+            ]
+            if unconfirmed:
+                errors.append(f"page {number} caption fields are not confirmed: {', '.join(unconfirmed)}")
+    return errors
+
+
+def validate_approval_state(state: object) -> list[str]:
+    """Validate the complete approval record required by release packaging."""
+    if not isinstance(state, dict):
+        return ["approval state must be an object"]
+    errors: list[str] = []
+    if state.get("schema_version") != "2.0.0":
+        errors.append("schema_version must be 2.0.0")
+    if state.get("status") not in {"batch_approved", "revision_in_progress", "revision_completed"}:
+        errors.append("status does not permit packaging")
+    for field in (
+        "created_at_utc", "render_plan_path", "render_plan_sha256",
+        "production_plan_path", "production_plan_sha256", "sample_style_contract_sha256",
+        "sample_path", "sample_sha256", "sample_plate_path", "sample_plate_sha256",
+        "sample_registered_at_utc", "presented_at_utc", "approved_at_utc",
+    ):
+        if not nonempty_string(state.get(field)):
+            errors.append(f"{field} is required")
+    if not isinstance(state.get("sample_page"), int):
+        errors.append("sample_page must be an integer")
+    for field in ("permitted_render_pages", "blocked_render_pages"):
+        value = state.get(field)
+        if not isinstance(value, list) or not all(isinstance(page, int) for page in value):
+            errors.append(f"{field} must be an integer array")
+    if state.get("blocked_render_pages") != []:
+        errors.append("blocked_render_pages must be empty after batch approval")
+    if not isinstance(state.get("revision_ledger"), list):
+        errors.append("revision_ledger must be an array")
+    plate_validation = state.get("sample_plate_validation")
+    if not isinstance(plate_validation, dict) or plate_validation.get("blocking_pass") is not True:
+        errors.append("sample_plate_validation is required and must pass")
+    renderer = state.get("renderer_record")
+    if not isinstance(renderer, dict):
+        errors.append("renderer_record is required and must be an object")
+    elif not nonempty_string(renderer.get("path")) or not nonempty_string(renderer.get("sha256")):
+        errors.append("renderer_record requires path and sha256")
+    approval = state.get("explicit_approval")
+    if not isinstance(approval, dict) or approval.get("actor") != "user" or not nonempty_string(approval.get("text")):
+        errors.append("explicit_approval must contain actor=user and non-empty text")
+    presentation = state.get("presentation_record")
+    required_coverage = {"ordered-page-briefs", "sample-style-contract", "sample-scope", "finish-qa-delivery"}
+    if not isinstance(presentation, dict):
+        errors.append("presentation_record is required")
+    else:
+        if presentation.get("mode") not in {"artifact", "faithful-summary"}:
+            errors.append("presentation_record.mode is invalid")
+        if not nonempty_string(presentation.get("note")):
+            errors.append("presentation_record.note is required")
+        if presentation.get("plan_decisions_communicated") is not True or presentation.get("sample_discussed") is not True:
+            errors.append("presentation_record must confirm plan decisions and sample discussion")
+        coverage = presentation.get("decision_coverage")
+        if not isinstance(coverage, list) or not required_coverage.issubset(set(coverage)):
+            errors.append("presentation_record.decision_coverage is incomplete")
+    return errors
+
+
 def validate_revision_changes(changes: object, valid_pages: set[int]) -> list[str]:
     errors: list[str] = []
     if not isinstance(changes, list) or not changes:

@@ -89,12 +89,14 @@ def main() -> int:
         f"- Frame/border policy: {contract['frame_border_policy']}",
         f"- Abstraction level: {contract['abstraction_level']}",
         "- The generated first page is approval evidence only and must never become a style-reference image.", "",
-        "## Style-reference technique roles", "",
+        "## Style-reference technique roles and subject exclusions", "",
     ]
     refs = plan.get("style_references", [])
     if refs:
         for ref in refs:
-            lines.append(f"- `{ref.get('id', 'unnamed')}`: " + "; ".join(ref.get("technique_roles", [])))
+            identity = ref.get("id", "unnamed")
+            lines.append(f"- `{identity}` technique roles: " + "; ".join(ref.get("technique_roles", [])))
+            lines.append(f"- `{identity}` subject exclusions: " + "; ".join(ref.get("subject_exclusions", [])))
     else:
         lines.append("- No approved image reference is configured; text rules only.")
     lines += ["", "## Ordered page decisions", ""]

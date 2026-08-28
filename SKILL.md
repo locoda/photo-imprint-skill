@@ -1,14 +1,19 @@
 ---
 name: "photo_to_illustration_carousel"
-description: "Turn user photos into a consistent illustrated social-media carousel with EXIF ordering, source-specific visual briefs, a plan+sample approval gate, clean-plate normalization, deterministic overlays, typed revisions, two-level visual QA, and verified packaging."
+version: "1.2.0"
+description: "Use when a user asks to turn photos into a consistent illustrated social-media carousel (including 照片转手绘轮播): EXIF ordering, source-specific visual briefs, a plan+sample approval gate, clean-plate normalization, deterministic composition, typed revisions, two-level visual QA, and verified packaging."
 ---
 
 # Photo-to-Illustration Carousel
 
 ## Purpose
-Convert photos into one coherent illustrated carousel while keeping five controls independent: theme, style, layers, composition, and unification. `presets/travel-food-journal.json` is the complete executable default; see `references/configuration.md` for defaults and overrides.
+Convert photos into one coherent illustrated carousel while keeping five controls independent: theme, style, layers, composition, and unification. `presets/travel-food-journal.json` supplies complete workflow defaults; actual subject plates still require a configured renderer and validated receipt. Two independent, opt-in Smithsonian reference packs are bundled: `blue-lavender-watercolor` and `highway-485-lithograph`; neither replaces the preset default or may contribute its depicted subjects. See `references/configuration.md` for defaults and overrides.
 
 ## Workflow
+
+### 0. Preflight and inspect state
+
+Install `requirements.txt`, run `python3 bin/check_environment.py`, and after config resolution rerun it with `--config <resolved-config> --font <font-file>`. Typography requires an explicit readable font file; never substitute a font silently. `python3 bin/workflow.py --project <project-dir> status|next` reports state without writing or bypassing a gate.
 
 ### 1. Resolve and preprocess
 
@@ -31,7 +36,7 @@ python3 bin/render_scope.py --render-plan work/render-plan.json --state work/app
 
 ### 3. Render, normalize, and discuss only page one
 
-Render only the first EXIF page. Normalize/validate its clean plate with `clean_plate.py`, compose deterministic paper/text/modules, then register both the normalized plate and composed sample.
+Render only the first EXIF page. Register and validate a `renderer_receipt.py` record containing renderer kind, exact model/version, seed, settings, and source/reference/output hashes. A `not-configured` receipt is an honest blocker, not permission to continue. Normalize/validate the clean plate with `clean_plate.py`, then run `compose.py` with the explicit font and validated receipt before registering both the normalized plate and composed sample.
 
 The Markdown plan must exist. It may be sent as an artifact or faithfully summarized, but all plan decisions and the sample must be discussed together. Record the mode with `review_gate.py mark-shown`. See `references/review-gate.md`.
 
@@ -41,7 +46,7 @@ Copy the user's exact approval message into `review_gate.py approve`, then gener
 
 ### 5. Normalize plates and compose deterministically
 
-Use the active style's profile-driven cleanup policy. Watercolor/pale media and opaque collage must not be treated like line art. Apply shared paper, placement, typography, route, markers, watermark, and disclosure only after clean plates pass. Optional modules must remain removable.
+Use the active style's profile-driven cleanup policy. Watercolor/pale media and opaque collage must not be treated like line art. Register a full-set renderer receipt whose source/reference sets exactly match the approved plan and whose outputs hash-lock every normalized plate; record per-page seeds in settings when needed. Apply shared paper, placement, typography, route, markers, watermark, and disclosure only after clean plates pass. `compose.py` writes a composition manifest binding config, plan, renderer receipt, font, plates, and final pages. Optional modules must remain removable.
 
 ### 6. Review two independent acceptance dimensions
 
@@ -60,7 +65,20 @@ Any change to page one, the style contract/reference, source/order, shared layou
 
 ### 8. Stage, package, and deliver
 
-Lock staged numbered images with `package_verified.py stage`; rerun QA against that stage; package only after checklist validation; then run `package_verified.py verify`. Artifact delivery copies verified staged outputs and must not regenerate images.
+Lock staged numbered images with `package_verified.py stage`; rerun QA against that exact stage and approved config/plan; package with the composition manifest only after checklist validation; then run `package_verified.py verify`. Packaging revalidates current sources, confirmed captions, renderer/plate provenance, QA input locks, review evidence, and exact staged bytes. Artifact delivery copies verified staged outputs and must not regenerate images.
+
+## Failure handling
+
+Fail closed and repair the causal stage:
+
+- environment/font failure → install the declared dependency or supply the configured font, then rerun preflight;
+- missing renderer → stop at the render scope; do not fabricate a receipt or claim output exists;
+- source/reference/plan hash mismatch → rebuild the plan and return to the sample gate;
+- invalid plate or objective QA failure → regenerate or normalize the affected plate, then rerun composition and QA;
+- QA/staging mismatch → discard the stale checklist and review the current staged bytes;
+- changed shared system, sample, style, source, or order → invalidate approval and restart plan+sample review.
+
+Manual review may decide semantic and aesthetic checks; it can never override machine-verifiable failures.
 
 ## Output Contract
 - `production-plan.md` always exists before the first render.
@@ -69,7 +87,10 @@ Lock staged numbered images with `package_verified.py stage`; rerun QA against t
 - Plates are normalized/validated under the active style policy.
 - Every page and the set pass separate evidence-bearing QA gates.
 - Page-local revisions preserve unchanged approved pages.
-- The ZIP contains only verified staged files plus its release manifest.
+- Objective failures such as wrong dimensions, invalid plates, severe seam/frame/background diagnostics, changed source hashes, or review/staging hash mismatches cannot be overridden by manual `pass` entries.
+- Every rendered plate has a validated renderer receipt; an unconfigured renderer is reported as unavailable, never simulated.
+- Deterministic outputs and packaged files contain no EXIF, GPS, or XMP metadata.
+- The ZIP contains only verified staged files plus its release manifest; verification also requires the separately written trusted manifest sidecar.
 
 ## Operating Rules
 1. Keep style separate from subject; reference images contribute techniques, never objects.
@@ -77,3 +98,5 @@ Lock staged numbered images with `package_verified.py stage`; rerun QA against t
 3. Do not claim consistency, transparency, or QA success without opening the actual outputs.
 4. Fix the causal layer, not a cosmetic patch.
 5. Preserve user authority over plan, sample, revisions, and approval.
+6. Keep reusable watermark defaults off; names, handles, and marks are project overrides, never universal defaults.
+7. Treat local storage of a private reference and transmission to an external image service as separate permissions. Never upload a private reference without explicit external-processing consent.

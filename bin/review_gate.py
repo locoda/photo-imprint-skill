@@ -12,6 +12,8 @@ from typing import Any
 
 from PIL import Image
 from workflow_contracts import digest, load_object, validate_style_contract, write_object
+from renderer_receipt import load as load_renderer_receipt, validate as validate_renderer_receipt
+from clean_plate import analyze as analyze_plate, policy_from_config
 
 
 def canonical_hash(value: object) -> str:
@@ -45,6 +47,31 @@ def verify_locked_files(state: dict[str, Any]) -> None:
         raise ValueError("sample style contract changed; rebuild and re-review")
 
 
+def verify_receipt_scope(receipt: dict[str, Any], plan: dict[str, Any], sample_page: object) -> None:
+    pages = [page for page in plan.get("pages", []) if isinstance(page, dict) and page.get("page") == sample_page]
+    if len(pages) != 1:
+        raise ValueError("sample page is not uniquely present in the render plan")
+    expected_sources = {
+        (str(Path(str(page.get("source_path", ""))).resolve()), page.get("source_sha256")) for page in pages
+    }
+    actual_sources = {
+        (str(Path(str(entry.get("path", ""))).resolve()), entry.get("sha256"))
+        for entry in receipt.get("sources", []) if isinstance(entry, dict)
+    }
+    if actual_sources != expected_sources:
+        raise ValueError("renderer record sources do not exactly match the sample page source")
+    expected_references = {
+        (str(Path(str(entry.get("image_path", ""))).resolve()), entry.get("image_sha256"))
+        for entry in plan.get("style_reference_locks", []) if isinstance(entry, dict)
+    }
+    actual_references = {
+        (str(Path(str(entry.get("path", ""))).resolve()), entry.get("sha256"))
+        for entry in receipt.get("references", []) if isinstance(entry, dict)
+    }
+    if actual_references != expected_references:
+        raise ValueError("renderer record references do not exactly match the approved style references")
+
+
 def readable_size(path: Path) -> tuple[int, int]:
     if not path.is_file():
         raise ValueError(f"image is missing: {path}")
@@ -53,6 +80,16 @@ def readable_size(path: Path) -> tuple[int, int]:
             return image.size
     except Exception as exc:
         raise ValueError(f"image is unreadable: {path}: {exc}") from exc
+
+
+def canonical_plate_validation(plate_path: Path, config_path: Path) -> tuple[dict[str, Any], tuple[int, int]]:
+    """Return the single canonical live plate-validation object stored and later rechecked by the gate."""
+    policy, expected_size = policy_from_config(config_path)
+    with Image.open(plate_path) as plate:
+        analysis = analyze_plate(plate, policy)
+        analysis["checks"]["dimensions"] = plate.size == expected_size
+    analysis["blocking_pass"] = all(analysis["checks"].values())
+    return analysis, expected_size
 
 
 def command_register(args: argparse.Namespace) -> int:
@@ -68,18 +105,35 @@ def command_register(args: argparse.Namespace) -> int:
         raise ValueError(f"composed sample dimensions do not match {expected}")
     if readable_size(args.sample_plate) != expected:
         raise ValueError(f"sample plate dimensions do not match {expected}")
+    config_path = Path(str(plan.get("resolved_config_lock", {}).get("path", "")))
     with Image.open(args.sample_plate) as plate:
         if plate.mode not in {"RGBA", "LA"} or "A" not in plate.getbands():
             raise ValueError("sample plate must contain an alpha channel after normalization")
-    renderer_record = None
-    if args.renderer_record is not None:
-        if not args.renderer_record.is_file():
-            raise ValueError(f"renderer record is missing: {args.renderer_record}")
-        renderer_record = {"path": str(args.renderer_record.resolve()), "sha256": digest(args.renderer_record.resolve())}
+    plate_analysis, validation_size = canonical_plate_validation(args.sample_plate, config_path)
+    if validation_size != expected:
+        raise ValueError("render plan and resolved config disagree on expected dimensions")
+    if not plate_analysis.get("blocking_pass"):
+        raise ValueError("sample plate failed active normalization-policy validation")
+    if not args.renderer_record.is_file():
+        raise ValueError(f"renderer record is missing: {args.renderer_record}")
+    receipt = load_renderer_receipt(args.renderer_record)
+    receipt_errors = validate_renderer_receipt(receipt, check_files=True, require_rendered_output=True)
+    if receipt_errors:
+        raise ValueError("renderer record is invalid: " + "; ".join(receipt_errors))
+    verify_receipt_scope(receipt, plan, state.get("sample_page"))
+    plate_evidence = (str(args.sample_plate.resolve()), digest(args.sample_plate.resolve()))
+    receipt_outputs = {
+        (str(Path(str(entry.get("path", ""))).resolve()), entry.get("sha256"))
+        for entry in receipt.get("rendered_outputs", []) if isinstance(entry, dict)
+    }
+    if receipt_outputs != {plate_evidence}:
+        raise ValueError("sample renderer record outputs must contain exactly the normalized sample plate")
+    renderer_record = {"path": str(args.renderer_record.resolve()), "sha256": digest(args.renderer_record.resolve())}
     state.update({
         "status": "sample_ready_not_shown", "sample_path": str(args.sample.resolve()),
         "sample_sha256": digest(args.sample.resolve()), "sample_plate_path": str(args.sample_plate.resolve()),
-        "sample_plate_sha256": digest(args.sample_plate.resolve()), "renderer_record": renderer_record,
+        "sample_plate_sha256": digest(args.sample_plate.resolve()), "sample_plate_validation": plate_analysis,
+        "renderer_record": renderer_record,
         "sample_registered_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "explicit_approval": None, "permitted_render_pages": [pages[0].get("page")],
         "blocked_render_pages": [page.get("page") for page in pages[1:]],
@@ -98,10 +152,37 @@ def verify_sample(state: dict[str, Any]) -> None:
         if not path.is_file() or digest(path) != expected:
             raise ValueError(f"registered {key} changed; register and discuss the revised sample pair")
     renderer = state.get("renderer_record")
-    if isinstance(renderer, dict):
-        path = Path(str(renderer.get("path", "")))
-        if not path.is_file() or digest(path) != renderer.get("sha256"):
-            raise ValueError("registered renderer record changed; register and discuss the revised sample pair")
+    if not isinstance(renderer, dict):
+        raise ValueError("registered renderer record is missing")
+    path = Path(str(renderer.get("path", "")))
+    if not path.is_file() or digest(path) != renderer.get("sha256"):
+        raise ValueError("registered renderer record changed; register and discuss the revised sample pair")
+    receipt = load_renderer_receipt(path)
+    errors = validate_renderer_receipt(receipt, check_files=True, require_rendered_output=True)
+    if errors:
+        raise ValueError("registered renderer record is invalid: " + "; ".join(errors))
+    plan = load_object(Path(state["render_plan_path"]), "render plan")
+    verify_receipt_scope(receipt, plan, state.get("sample_page"))
+    plate_path = Path(str(state.get("sample_plate_path", ""))).resolve()
+    expected_output = {(str(plate_path), state.get("sample_plate_sha256"))}
+    actual_outputs = {
+        (str(Path(str(entry.get("path", ""))).resolve()), entry.get("sha256"))
+        for entry in receipt.get("rendered_outputs", []) if isinstance(entry, dict)
+    }
+    if actual_outputs != expected_output:
+        raise ValueError("sample renderer record outputs must contain exactly the normalized sample plate")
+    current_analysis, _ = canonical_plate_validation(
+        plate_path, Path(str(plan.get("resolved_config_lock", {}).get("path", "")))
+    )
+    if not current_analysis.get("blocking_pass") or current_analysis != state.get("sample_plate_validation"):
+        raise ValueError("registered sample plate validation is missing, failed, or stale")
+    evidence = (str(plate_path), state.get("sample_plate_sha256"))
+    outputs = {
+        (str(Path(str(entry.get("path", ""))).resolve()), entry.get("sha256"))
+        for entry in receipt.get("rendered_outputs", []) if isinstance(entry, dict)
+    }
+    if evidence not in outputs:
+        raise ValueError("registered renderer record no longer matches the sample plate")
 
 
 def command_mark_shown(args: argparse.Namespace) -> int:
@@ -165,7 +246,7 @@ def main() -> int:
     register.add_argument("--state", required=True, type=Path)
     register.add_argument("--sample", required=True, type=Path, help="Composed first-page sample")
     register.add_argument("--sample-plate", required=True, type=Path, help="Normalized transparent sample plate")
-    register.add_argument("--renderer-record", type=Path, help="Optional JSON/text record of model, version, seed, and renderer settings")
+    register.add_argument("--renderer-record", required=True, type=Path, help="Validated renderer receipt that hash-locks the sample plate")
     register.set_defaults(handler=command_register)
     shown = sub.add_parser("mark-shown", help="Record discussion of plan decisions and sample")
     shown.add_argument("--state", required=True, type=Path)

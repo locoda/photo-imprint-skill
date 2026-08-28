@@ -1,6 +1,6 @@
 {
   "preset": "travel-food-journal",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "profiles": {
     "theme": "food",
     "style": "watercolor-journal",
@@ -36,9 +36,10 @@
       }
     },
     "watermark": {
-      "enabled": true,
-      "text": "@1mether",
-      "position": "top-right"
+      "enabled": false,
+      "text": "",
+      "position": "top-right",
+      "project_override_required_to_enable": true
     },
     "disclosure": {
       "enabled": false,
@@ -69,6 +70,15 @@
     "approval": {
       "explicit_user_message_required": true,
       "generated_sample_as_style_reference": false
+    },
+    "renderer": {
+      "backend_configured_by_default": false,
+      "validated_receipt_required_for_rendered_output": true,
+      "external_reference_processing_requires_explicit_consent": true
+    },
+    "composition": {
+      "deterministic": true,
+      "strip_exif_gps_xmp": true
     },
     "plate_pipeline": {
       "normalize": true,

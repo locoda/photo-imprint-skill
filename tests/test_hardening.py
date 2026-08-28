@@ -1,5 +1,5 @@
 from __future__ import annotations
-import json, subprocess, sys, tempfile, unittest, zipfile
+import hashlib, json, subprocess, sys, tempfile, unittest, zipfile
 from pathlib import Path
 from PIL import Image, ImageDraw
 
@@ -18,6 +18,7 @@ class HardeningTests(unittest.TestCase):
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory();self.w=Path(self.tmp.name)
         self.config=self.w/'resolved.json';run('resolve_config.py','--preset',ROOT/'presets/travel-food-journal.json','--output',self.config)
+        config=json.loads(self.config.read_text());config['profiles']['composition']['canvas'].update(width=64,height=96);self.config.write_text(json.dumps(config))
     def tearDown(self):self.tmp.cleanup()
     def test_generic_regression_fixture_covers_four_visual_cases(self):
         d=json.loads((ROOT/'tests/fixtures/generic-visual-cases.json').read_text())
@@ -38,11 +39,30 @@ class HardeningTests(unittest.TestCase):
         blocked=run('clean_plate.py','validate','--input',framed,'--config',strict,'--report',self.w/'bad.json',ok=False)
         self.assertEqual(blocked.returncode,4)
     def make_plan_state_stage(self):
-        plan=self.w/'plan.json';plan.write_text(json.dumps({'schema_version':'2.0.0','pages':[{'page':i,'production_brief':brief(str(i)),'render_prompt':'base'} for i in range(1,5)]}))
+        import hashlib
+        contract={'generated_page_is_style_reference':False}
+        sources=[]
+        for i in range(1,5):
+            source=self.w/f'source-{i}.jpg';Image.new('RGB',(8,8),'white').save(source);sources.append(source)
+        h=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+        plan=self.w/'plan.json';plan.write_text(json.dumps({'schema_version':'2.0.0','resolved_config_lock':{'path':str(self.config.resolve()),'sha256':h(self.config)},'sample_style_contract':contract,'pages':[{'page':i,'source_path':str(sources[i-1].resolve()),'source_sha256':h(sources[i-1]),'production_brief':brief(str(i)),'render_prompt':'base'} for i in range(1,5)]}))
         final=self.w/'final';final.mkdir(exist_ok=True)
         for i in range(1,5):Image.new('RGB',(64,96),(241,235,221)).save(final/f'{i:02d}.webp')
         stage=self.w/'stage.json';run('package_verified.py','stage','--input',final,'--output',stage)
-        state=self.w/'state.json';state.write_text(json.dumps({'status':'batch_approved','sample_page':1,'render_plan_path':str(plan.resolve()),'render_plan_sha256':__import__('hashlib').sha256(plan.read_bytes()).hexdigest(),'revision_ledger':[]}))
+        production=self.w/'production.md';production.write_text('approved plan')
+        sample=final/'01.webp';plate=self.w/'sample-plate.png';Image.new('RGBA',(64,96),(0,0,0,0)).save(plate)
+        validation_report=self.w/'sample-plate-validation.json';run('clean_plate.py','validate','--input',plate,'--config',self.config,'--report',validation_report);plate_validation=json.loads(validation_report.read_text())['analysis']
+        receipt=self.w/'renderer-receipt.json';run('renderer_receipt.py','register','--output',receipt,'--renderer-kind','local','--model','fixture-renderer','--model-version','1','--seed','7','--settings-json','{"mode":"fixture"}','--source',f'page-1={sources[0]}','--rendered-output',f'page-1={plate}')
+        state=self.w/'state.json';state.write_text(json.dumps({
+            'schema_version':'2.0.0','status':'batch_approved','created_at_utc':'2026-08-27T19:00:00+00:00',
+            'sample_page':1,'render_plan_path':str(plan.resolve()),'render_plan_sha256':h(plan),
+            'production_plan_path':str(production.resolve()),'production_plan_sha256':h(production),
+            'sample_style_contract_sha256':hashlib.sha256(json.dumps(contract,sort_keys=True,separators=(',',':')).encode()).hexdigest(),'sample_path':str(sample.resolve()),'sample_sha256':h(sample),
+            'sample_plate_path':str(plate.resolve()),'sample_plate_sha256':h(plate),'sample_plate_validation':plate_validation,'renderer_record':{'path':str(receipt.resolve()),'sha256':h(receipt)},
+            'sample_registered_at_utc':'2026-08-27T19:01:00+00:00','presented_at_utc':'2026-08-27T19:02:00+00:00',
+            'presentation_record':{'mode':'artifact','note':'reviewed','decision_coverage':['ordered-page-briefs','sample-style-contract','sample-scope','finish-qa-delivery'],'plan_decisions_communicated':True,'sample_discussed':True},
+            'approved_at_utc':'2026-08-27T19:03:00+00:00','explicit_approval':{'actor':'user','text':'approved'},
+            'permitted_render_pages':[2,3,4],'blocked_render_pages':[],'revision_ledger':[]}))
         return plan,state,stage,final
     def test_page_local_revision_preserves_unchanged_and_sample_change_resets_gate(self):
         plan,state,stage,_=self.make_plan_state_stage();changes=self.w/'changes.json';changes.write_text(json.dumps({'changes':[
@@ -61,20 +81,23 @@ class HardeningTests(unittest.TestCase):
     def test_one_page_batch_scope_is_explicitly_empty_after_approval(self):
         import hashlib
         plan=self.w/'one-plan.json';production=self.w/'one-plan.md';sample=self.w/'sample.png';plate=self.w/'sample-plate.png'
-        production.write_text('plan');Image.new('RGBA',(8,8),(0,0,0,0)).save(sample);Image.new('RGBA',(8,8),(0,0,0,0)).save(plate)
-        cfg_hash=hashlib.sha256(self.config.read_bytes()).hexdigest()
+        production.write_text('plan');Image.new('RGBA',(64,96),(0,0,0,0)).save(sample);Image.new('RGBA',(64,96),(0,0,0,0)).save(plate)
+        cfg_hash=hashlib.sha256(self.config.read_bytes()).hexdigest();source=self.w/'source.jpg';Image.new('RGB',(8,8),'white').save(source)
+        validation_report=self.w/'one-sample-validation.json';run('clean_plate.py','validate','--input',plate,'--config',self.config,'--report',validation_report);plate_validation=json.loads(validation_report.read_text())['analysis']
+        receipt=self.w/'one-renderer-receipt.json';run('renderer_receipt.py','register','--output',receipt,'--renderer-kind','local','--model','fixture-renderer','--model-version','1','--seed','7','--settings-json','{"mode":"fixture"}','--source',f'page-1={source}','--rendered-output',f'page-1={plate}')
         plan.write_text(json.dumps({'resolved_config_lock':{'path':str(self.config.resolve()),'sha256':cfg_hash},'style_reference_locks':[],
-            'sample_style_contract':{'generated_page_is_style_reference':False},'pages':[{'page':1}]}))
-        state=self.w/'one-state.json';state.write_text(json.dumps({'status':'batch_approved','render_plan_path':str(plan.resolve()),
+            'sample_style_contract':{'generated_page_is_style_reference':False},'pages':[{'page':1,'source_path':str(source.resolve()),'source_sha256':hashlib.sha256(source.read_bytes()).hexdigest()}]}))
+        state=self.w/'one-state.json';state.write_text(json.dumps({'status':'batch_approved','sample_page':1,'render_plan_path':str(plan.resolve()),
             'render_plan_sha256':hashlib.sha256(plan.read_bytes()).hexdigest(),'production_plan_path':str(production.resolve()),
             'production_plan_sha256':hashlib.sha256(production.read_bytes()).hexdigest(),'sample_path':str(sample.resolve()),
             'sample_sha256':hashlib.sha256(sample.read_bytes()).hexdigest(),'sample_plate_path':str(plate.resolve()),
-            'sample_plate_sha256':hashlib.sha256(plate.read_bytes()).hexdigest(),'explicit_approval':{'actor':'user','text':'approved'}}))
+            'sample_plate_sha256':hashlib.sha256(plate.read_bytes()).hexdigest(),'sample_plate_validation':plate_validation,'renderer_record':{'path':str(receipt.resolve()),'sha256':hashlib.sha256(receipt.read_bytes()).hexdigest()},'explicit_approval':{'actor':'user','text':'approved'},'permitted_render_pages':[],'blocked_render_pages':[]}))
         out=self.w/'one-batch.json';run('render_scope.py','--render-plan',plan,'--state',state,'--mode','batch','--output',out)
         self.assertEqual(json.loads(out.read_text())['render_scope']['page_numbers'],[])
     def test_qa_two_dimensions_block_then_verified_package_passes(self):
         plan,state,stage,final=self.make_plan_state_stage()
-        qa=self.w/'qa';run('qa_images.py','--input',final,'--output',qa,'--config',self.config,'--render-plan',plan)
+        plates=self.w/'qa-plates';plates.mkdir();[Image.new('RGBA',(64,96),(0,0,0,0)).save(plates/f'{i:02d}.png') for i in range(1,5)]
+        qa=self.w/'qa';run('qa_images.py','--input',final,'--output',qa,'--config',self.config,'--render-plan',plan,'--plates',plates)
         checklist=qa/'review-checklist.json';blocked=run('review_checklist.py','validate','--checklist',checklist,ok=False);self.assertEqual(blocked.returncode,4)
         data=json.loads(checklist.read_text())
         for page in data['page_level_compliance']['pages']:
@@ -84,9 +107,25 @@ class HardeningTests(unittest.TestCase):
         for entry in data['set_level_cohesion']['checks'].values():entry.update(status='pass',evidence='manual set review')
         data['set_level_cohesion']['status']='pass';checklist.write_text(json.dumps(data))
         run('review_checklist.py','validate','--checklist',checklist)
-        z=self.w/'release.zip';manifest=self.w/'release.json';run('package_verified.py','package','--input',final,'--staging-manifest',stage,'--review-checklist',checklist,'--state',state,'--output',z,'--manifest-output',manifest)
-        run('package_verified.py','verify','--zip',z)
+        plan_data=json.loads(plan.read_text());composition_receipt=self.w/'composition-receipt.json'
+        receipt_args=['register','--output',composition_receipt,'--renderer-kind','local','--model','fixture-renderer','--model-version','1','--seed','7','--settings-json','{"mode":"fixture"}']
+        plate_entries=[];output_entries=[]
+        for page in range(1,5):
+            plate=plates/f'{page:02d}.png';source=plan_data['pages'][page-1]['source_path'];out=final/f'{page:02d}.webp'
+            receipt_args += ['--source',f'page-{page}={source}','--rendered-output',f'page-{page}={plate}']
+            plate_entries.append({'page':page,'path':str(plate.resolve()),'sha256':hashlib.sha256(plate.read_bytes()).hexdigest()})
+            output_entries.append({'page':page,'path':str(out.resolve()),'sha256':hashlib.sha256(out.read_bytes()).hexdigest()})
+        run('renderer_receipt.py',*receipt_args)
+        composition=self.w/'composition-manifest.json';composition.write_text(json.dumps({'schema_version':'1.1.0','deterministic':True,'config_sha256':hashlib.sha256(self.config.read_bytes()).hexdigest(),'render_plan_sha256':hashlib.sha256(plan.read_bytes()).hexdigest(),'renderer_receipt':{'path':str(composition_receipt.resolve()),'sha256':hashlib.sha256(composition_receipt.read_bytes()).hexdigest()},'font':None,'plates':plate_entries,'metadata_policy':{'exif_gps_xmp':'forbidden','verified':True},'outputs':output_entries}))
+        z=self.w/'release.zip';manifest=self.w/'release.json';run('package_verified.py','package','--input',final,'--staging-manifest',stage,'--review-checklist',checklist,'--state',state,'--composition-manifest',composition,'--output',z,'--manifest-output',manifest)
+        run('package_verified.py','verify','--zip',z,'--manifest',manifest)
+        release=json.loads(manifest.read_text())
+        self.assertNotIn(str(self.w), json.dumps(release))
+        self.assertEqual(release['verification']['composition_manifest_sha256'],hashlib.sha256(composition.read_bytes()).hexdigest())
+        composition_data=json.loads(composition.read_text());composition_data['outputs'][0]['sha256']='0'*64;composition.write_text(json.dumps(composition_data))
+        blocked=run('package_verified.py','package','--input',final,'--staging-manifest',stage,'--review-checklist',checklist,'--state',state,'--composition-manifest',composition,'--output',self.w/'bad-composition.zip','--manifest-output',self.w/'bad-composition.json',ok=False)
+        self.assertEqual(blocked.returncode,4);self.assertIn('composition outputs',blocked.stderr.lower())
         with zipfile.ZipFile(z,'a') as archive:archive.writestr('extra.txt','tamper')
-        blocked=run('package_verified.py','verify','--zip',z,ok=False);self.assertEqual(blocked.returncode,4)
+        blocked=run('package_verified.py','verify','--zip',z,'--manifest',manifest,ok=False);self.assertEqual(blocked.returncode,4)
 
 if __name__=='__main__':unittest.main()

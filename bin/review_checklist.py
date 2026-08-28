@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 from workflow_contracts import QA_PAGE_CHECKS, QA_SET_CHECKS, digest, load_object, write_object
@@ -20,23 +21,46 @@ def recompute(data:dict)->None:
 
 def validate(data:dict)->list[str]:
     errors=[];pages=data.get('page_level_compliance',{}).get('pages')
+    qpath=Path(str(data.get('qa_report_path','')))
+    qa_report=None
+    if not qpath.is_file() or digest(qpath)!=data.get('qa_report_sha256'):
+        errors.append('locked QA report changed or is missing')
+    else:
+        try:
+            qa_report=load_object(qpath,'QA report')
+        except ValueError as exc:
+            errors.append(str(exc))
+    if isinstance(qa_report,dict):
+        gate=qa_report.get('objective_gate')
+        failures=gate.get('failures',[]) if isinstance(gate,dict) else []
+        if not isinstance(gate,dict) or gate.get('status')!='pass' or failures:
+            errors.append('objective QA gate failed: ' + json.dumps(failures,ensure_ascii=False))
+        if data.get('objective_gate') != gate:
+            errors.append('checklist objective gate does not match locked QA report')
     if not isinstance(pages,list) or not pages:return ['page-level checklist has no pages']
+    qa_rows={row.get('filename'):row for row in (qa_report or {}).get('images',[]) if isinstance(row,dict)}
     for page in pages:
         number=page.get('page');checks=page.get('checks',{})
+        qa_row=qa_rows.get(page.get('filename'))
+        if not isinstance(qa_row,dict) or qa_row.get('sha256')!=page.get('sha256'):
+            errors.append(f"page {number}: reviewed page hash does not match locked QA report")
+        if page.get('automated_diagnostics',{}).get('objective_failures'):
+            errors.append(f"page {number}: objective diagnostics failed")
         for check in QA_PAGE_CHECKS:
             entry=checks.get(check)
             if not isinstance(entry,dict) or entry.get('status')!='pass':errors.append(f"page {number}: {check} is not pass")
             elif not str(entry.get('evidence','')).strip():errors.append(f"page {number}: {check} lacks evidence")
         for evidence_key in ('full_size_evidence','phone_scale_evidence'):
             path=Path(str(page.get(evidence_key,'')))
+            expected=page.get(f'{evidence_key}_sha256')
             if not path.is_file():errors.append(f"page {number}: missing {evidence_key} file")
+            elif not isinstance(expected,str) or digest(path)!=expected:
+                errors.append(f"page {number}: {evidence_key} evidence changed or is not hash-locked")
     checks=data.get('set_level_cohesion',{}).get('checks',{})
     for check in QA_SET_CHECKS:
         entry=checks.get(check)
         if not isinstance(entry,dict) or entry.get('status')!='pass':errors.append(f"set: {check} is not pass")
         elif not str(entry.get('evidence','')).strip():errors.append(f"set: {check} lacks evidence")
-    qpath=Path(str(data.get('qa_report_path','')))
-    if not qpath.is_file() or digest(qpath)!=data.get('qa_report_sha256'):errors.append('locked QA report changed or is missing')
     recompute(data)
     if data.get('page_level_compliance',{}).get('status')!='pass':errors.append('page-level compliance is incomplete or failed')
     if data.get('set_level_cohesion',{}).get('status')!='pass':errors.append('set-level cohesion is incomplete or failed')

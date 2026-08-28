@@ -55,7 +55,7 @@ The production-plan Markdown must always exist. It does not always need to be se
 
 ## Default configuration
 
-`presets/travel-food-journal.json` provides a complete executable default once factual captions and source-specific page decisions are supplied.
+`presets/travel-food-journal.json` provides complete workflow defaults once factual captions and source-specific page decisions are supplied. The repository does not ship or silently choose an image-generation backend: rendered plates require a separately configured renderer and a validated renderer receipt.
 
 Defaults include:
 
@@ -66,14 +66,38 @@ Defaults include:
 - profile-driven plate cleanup;
 - full-size and 360×640 phone review for every page;
 - separate page-compliance and set-cohesion gates;
-- typed post-approval revisions; and
-- hash-locked staging and verified ZIP packaging.
+- typed post-approval revisions;
+- hash-locked staging and verified ZIP packaging; and
+- watermarking disabled until a project explicitly supplies and enables its own text.
 
 The workflow never invents missing dates, locations, caption facts, subject priorities, identifying anchors, material cues, structural lines, or forbidden elements.
 
+### Bundled initial style references
+
+Two independently selectable Smithsonian public-domain style packs are bundled:
+
+- `blue-lavender-watercolor` — watercolor wash/material handling, edge control, cool value grouping, and selective dark anchors;
+- `highway-485-lithograph` — sparse broken dry-crayon/line construction, paper-white negative space, restrained dark accents, radical simplification, and limited hatching.
+
+Each pack has its own profile, optimized derivative, exact provenance, technique roles, and subject-leakage exclusions under `assets/style-packs/<id>/`. They are not blended, and neither replaces the preset’s default style. To use one, copy the preset or provide a project preset whose `profiles.style` names that ID, then resolve it normally.
+
 ## Quick start
 
-Run commands from the repository root.
+Run commands from the repository root. Install the declared Python dependencies and run the environment check before starting:
+
+```bash
+python3 -m pip install -r requirements.txt
+python3 bin/check_environment.py
+```
+
+The check fails closed when required Python packages or runtime support are unavailable. After resolving the config, rerun it with `--config work/resolved-config.json --font /path/to/font.ttf`; typography is deterministic only with an explicit readable font asset.
+
+At any point, inspect the real project files without advancing a gate:
+
+```bash
+python3 bin/workflow.py status --project work
+python3 bin/workflow.py next --project work
+```
 
 ### 1. Resolve the preset
 
@@ -157,13 +181,41 @@ python3 bin/clean_plate.py validate \
   --report work/plates/01-validation.json
 ```
 
-Compose the deterministic overlays, then register the clean plate and sample:
+Register the actual renderer identity and hash-lock its source/reference/output bytes. A local renderer example:
 
 ```bash
+python3 bin/renderer_receipt.py register \
+  --output work/sample-renderer-receipt.json \
+  --renderer-kind local \
+  --model '<model id>' \
+  --model-version '<exact version>' \
+  --seed '<seed>' \
+  --settings-json '{"sampler":"<sampler>","steps":30}' \
+  --source page-01=/path/to/source-photo.jpg \
+  --rendered-output page-01=work/plates/01.png
+python3 bin/renderer_receipt.py validate \
+  --receipt work/sample-renderer-receipt.json \
+  --require-rendered-output
+```
+
+For an external renderer that receives reference files, also name `--external-service` and pass `--external-reference-decision authorized` only after separate, explicit consent. A `not-configured` receipt reports unavailability and cannot authorize composition.
+
+Compose the deterministic paper, subject placement, route/markers, caption, and project watermark, then register the clean plate and composed sample:
+
+```bash
+python3 bin/compose.py \
+  --config work/resolved-config.json \
+  --render-plan work/sample-render-plan.json \
+  --plates work/plates \
+  --output work/sample \
+  --font /path/to/font.ttf \
+  --renderer-receipt work/sample-renderer-receipt.json
+
 python3 bin/review_gate.py register-sample \
   --state work/approval-state.json \
   --sample-plate work/plates/01.png \
-  --sample work/sample/01.webp
+  --sample work/sample/01.png \
+  --renderer-record work/sample-renderer-receipt.json
 ```
 
 ### 6. Discuss the plan and sample
@@ -201,6 +253,32 @@ python3 bin/render_scope.py \
 ```
 
 The batch scope contains pages 2..N only. A one-page carousel has an empty batch scope after approval.
+
+Render and normalize only the permitted pages. Then create a full-set renderer receipt that lists every approved source, every style reference actually transmitted or used, and every normalized plate. Record exact per-page seeds in `settings-json` when they differ. Compose the complete carousel from the full render plan; `compose.py` requires the receipt’s source/reference sets to match the plan exactly and writes `work/final/composition-manifest.json`, binding the config, plan, renderer receipt, font, plate hashes, and final page hashes.
+
+```bash
+python3 bin/renderer_receipt.py register \
+  --output work/full-renderer-receipt.json \
+  --renderer-kind local \
+  --model '<model id>' \
+  --model-version '<exact version>' \
+  --seed '<seed or batch id>' \
+  --settings-json '{"per_page_seeds":{"1":101,"2":102}}' \
+  --source page-01=/path/to/source-01.jpg \
+  --source page-02=/path/to/source-02.jpg \
+  --rendered-output page-01=work/plates/01.png \
+  --rendered-output page-02=work/plates/02.png
+
+python3 bin/compose.py \
+  --config work/resolved-config.json \
+  --render-plan work/render-plan.json \
+  --plates work/plates \
+  --output work/final \
+  --font /path/to/font.ttf \
+  --renderer-receipt work/full-renderer-receipt.json
+```
+
+Repeat `--source`, `--reference`, and `--rendered-output` for the complete approved set. External-reference authorization remains required when any reference file is sent to an external service.
 
 ## Acceptance has two independent dimensions
 
@@ -248,7 +326,7 @@ python3 bin/review_checklist.py validate \
   --checklist work/qa/review-checklist.json
 ```
 
-Automated metrics are review leads, not substitutes for visual inspection. Open every final page at full size and phone scale; a contact sheet alone is not sufficient.
+Style-consistency metrics are review leads, not substitutes for visual inspection. Objective failures—wrong dimensions, invalid plates, severe background/seam/frame diagnostics, metadata, or hash mismatches—are hard gates and cannot be overridden by manual `pass` entries. Open every final page at full size and phone scale; a contact sheet alone is not sufficient.
 
 ## Post-approval revisions
 
@@ -304,14 +382,16 @@ python3 bin/package_verified.py package \
   --staging-manifest work/staging-manifest.json \
   --review-checklist work/qa/review-checklist.json \
   --state work/approval-state.json \
+  --composition-manifest work/final/composition-manifest.json \
   --output dist/carousel.zip \
   --manifest-output dist/release-manifest.json
 
 python3 bin/package_verified.py verify \
-  --zip dist/carousel.zip
+  --zip dist/carousel.zip \
+  --manifest dist/release-manifest.json
 ```
 
-The ZIP contains only verified numbered images and `release-manifest.json`. Delivery should copy these staged outputs rather than regenerate artwork.
+The ZIP contains only verified numbered images and `release-manifest.json`; `verify` compares that embedded manifest byte-for-byte with the separately written trusted sidecar. Packaging revalidates current source bytes, confirmed captions, the approved sample receipt, the full composition receipt and plate hashes, QA config/plan locks, full-size and phone evidence, and exact staged page hashes. The release manifest stores hashes rather than local filesystem paths. Delivery should copy these staged outputs rather than regenerate artwork.
 
 ## Project layout
 
@@ -345,7 +425,7 @@ The regression suite includes generic, non-private cases for:
 
 ## References and privacy
 
-Keep private reference images local and out of version control. A reference may be added to a reusable style pack only after its rights and instructional value are verified. Record a clear technique role for every approved reference.
+Keep private reference images local and out of version control. Permission to store a private reference locally is not permission to send it to an external image service; external processing requires a separate, explicit, service-scoped decision recorded with the renderer receipt. A reference may be added to a reusable style pack only after its rights and instructional value are verified. Record a clear technique role for every approved reference. Deterministic final outputs and release packages must contain no EXIF, GPS, or XMP metadata.
 
 See:
 

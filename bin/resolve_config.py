@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import copy
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -23,6 +24,12 @@ PROFILE_DIRS = {
 KNOWN_MODULES = {"caption", "route", "watermark", "disclosure", "numbering"}
 MAX_REFERENCE_LONG_EDGE = 1600
 MAX_REFERENCE_BYTES = 750 * 1024
+REQUIRED_REFERENCE_SOURCE_FIELDS = {
+    "title", "creator", "institution", "item_record_url", "official_image_url",
+    "object_number", "medium", "date", "rights_status", "rights_statement",
+    "license_url", "retrieval_date", "redistributable", "bundled", "derivative",
+}
+FORBIDDEN_REFERENCE_METADATA = {"exif", "gps", "xmp", "xml:com.adobe.xmp"}
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -45,6 +52,83 @@ def deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]
         else:
             merged[key] = copy.deepcopy(value)
     return merged
+
+
+def validate_reference_metadata(
+    reference: dict[str, Any], source: dict[str, Any], source_path: Path
+) -> list[str]:
+    """Validate provenance, technique isolation, and derivative integrity metadata."""
+    errors: list[str] = []
+    missing = sorted(REQUIRED_REFERENCE_SOURCE_FIELDS - set(source))
+    if missing:
+        errors.append(f"{source_path}: missing keys: {', '.join(missing)}")
+    if source.get("redistributable") is True:
+        for key in ("license_url", "item_record_url", "official_image_url", "rights_statement"):
+            if not isinstance(source.get(key), str) or not source[key].strip():
+                errors.append(f"{source_path}: redistributable reference requires non-empty {key}")
+    roles = reference.get("technique_roles")
+    exclusions = reference.get("subject_exclusions")
+    if not isinstance(exclusions, list) or not exclusions or not all(
+        isinstance(value, str) and value.strip() for value in exclusions
+    ):
+        errors.append(f"{source_path}: active reference requires subject_exclusions")
+    if source.get("technique_roles") != roles:
+        errors.append(f"{source_path}: technique_roles must match the style profile")
+    if source.get("subject_exclusions") != exclusions:
+        errors.append(f"{source_path}: subject_exclusions must match the style profile")
+    derivative = source.get("derivative")
+    required_derivative = {
+        "file", "format", "width", "height", "long_edge_px", "bytes", "sha256",
+        "settings", "metadata_stripped",
+    }
+    if not isinstance(derivative, dict):
+        errors.append(f"{source_path}: derivative must be an object")
+    else:
+        missing_derivative = sorted(required_derivative - set(derivative))
+        if missing_derivative:
+            errors.append(f"{source_path}: derivative missing keys: {', '.join(missing_derivative)}")
+        stripped = derivative.get("metadata_stripped")
+        if not isinstance(stripped, list) or not {"EXIF", "GPS", "XMP"}.issubset(set(stripped)):
+            errors.append(f"{source_path}: derivative must record EXIF/GPS/XMP stripping")
+    return errors
+
+
+def validate_reference_asset(ref_path: Path, source: dict[str, Any], source_path: Path) -> list[str]:
+    """Validate optimized bytes against their declared derivative record."""
+    errors: list[str] = []
+    derivative = source.get("derivative")
+    if not ref_path.is_file() or not isinstance(derivative, dict):
+        return errors
+    try:
+        size_bytes = ref_path.stat().st_size
+        sha256 = hashlib.sha256(ref_path.read_bytes()).hexdigest()
+        with Image.open(ref_path) as image:
+            image.load()
+            width, height = image.size
+            image_format = image.format
+            info_keys = {str(key).lower() for key in image.info}
+            forbidden = sorted(
+                key for key in info_keys
+                if key in FORBIDDEN_REFERENCE_METADATA or "xmp" in key
+            )
+            if image.getexif():
+                forbidden.append("exif")
+        if max(width, height) > MAX_REFERENCE_LONG_EDGE:
+            errors.append(f"{ref_path}: long edge {max(width, height)}px exceeds {MAX_REFERENCE_LONG_EDGE}px")
+        if size_bytes > MAX_REFERENCE_BYTES:
+            errors.append(f"{ref_path}: {size_bytes} bytes exceeds {MAX_REFERENCE_BYTES}")
+        if forbidden:
+            errors.append(f"{ref_path}: forbidden metadata present: {', '.join(sorted(set(forbidden)))}")
+        expected = {
+            "file": ref_path.name, "format": image_format, "width": width, "height": height,
+            "long_edge_px": max(width, height), "bytes": size_bytes, "sha256": sha256,
+        }
+        for key, actual in expected.items():
+            if derivative.get(key) != actual:
+                errors.append(f"{source_path}: derivative.{key} does not match {ref_path}")
+    except Exception as exc:
+        errors.append(f"{ref_path}: unreadable image: {exc}")
+    return errors
 
 
 def resolve_preset(
@@ -147,14 +231,8 @@ def resolve_preset(
                 source: dict[str, Any] | None = None
                 try:
                     source = load_json(source_path)
-                    required = {"title", "creator", "institution", "rights_statement", "redistributable", "derivative"}
-                    missing = sorted(required - set(source))
-                    if missing:
-                        errors.append(f"{source_path}: missing keys: {', '.join(missing)}")
-                    if source.get("redistributable") is True:
-                        if not source.get("license_url") or not source.get("item_record_url"):
-                            errors.append(f"{source_path}: redistributable references require license_url and item_record_url")
-                    else:
+                    errors.extend(validate_reference_metadata(reference, source, source_path))
+                    if source.get("redistributable") is not True:
                         warnings.append(f"active style reference is private/non-redistributable: {reference_id}")
                 except ValueError as exc:
                     errors.append(str(exc))
@@ -165,16 +243,8 @@ def resolve_preset(
                         warnings.append(f"style reference is not bundled: {ref_rel}")
                     else:
                         errors.append(f"missing style reference: {ref_path}")
-                else:
-                    try:
-                        with Image.open(ref_path) as image:
-                            long_edge = max(image.size)
-                        if long_edge > MAX_REFERENCE_LONG_EDGE:
-                            errors.append(f"style reference long edge exceeds {MAX_REFERENCE_LONG_EDGE}px: {ref_path}")
-                        if ref_path.stat().st_size > MAX_REFERENCE_BYTES:
-                            errors.append(f"style reference exceeds {MAX_REFERENCE_BYTES} bytes: {ref_path}")
-                    except Exception as exc:
-                        errors.append(f"unreadable style reference {ref_path}: {exc}")
+                elif source is not None:
+                    errors.extend(validate_reference_asset(ref_path, source, source_path))
 
     if errors:
         raise ValueError("\n".join(errors))

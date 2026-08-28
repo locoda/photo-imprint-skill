@@ -9,15 +9,13 @@ import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from PIL import Image
-
 from resolve_config import (
     CONCERNS,
-    MAX_REFERENCE_BYTES,
-    MAX_REFERENCE_LONG_EDGE,
     PROFILE_DIRS,
     load_json,
     resolve_preset,
+    validate_reference_asset,
+    validate_reference_metadata,
 )
 from workflow_contracts import validate_style_contract
 
@@ -34,8 +32,10 @@ def main() -> int:
 
     required_review_gate_files = (
         "bin/build_production_plan.py", "bin/review_gate.py", "bin/render_scope.py",
-        "bin/clean_plate.py", "bin/review_checklist.py", "bin/revision_scope.py",
-        "bin/package_verified.py", "references/review-gate.md", "references/quality-checks.md",
+        "bin/clean_plate.py", "bin/compose.py", "bin/renderer_receipt.py",
+        "bin/check_environment.py", "bin/workflow.py", "bin/review_checklist.py",
+        "bin/revision_scope.py", "bin/package_verified.py", "requirements.txt",
+        "references/review-gate.md", "references/quality-checks.md",
         "tests/fixtures/generic-visual-cases.json",
     )
     for relative in required_review_gate_files:
@@ -112,14 +112,8 @@ def main() -> int:
                     source = None
                     try:
                         source = load_json(source_path)
-                        required = {"title", "creator", "institution", "rights_statement", "redistributable", "derivative"}
-                        missing = sorted(required - set(source))
-                        if missing:
-                            errors.append(f"{source_path}: missing keys: {', '.join(missing)}")
-                        if source.get("redistributable") is True:
-                            if not source.get("license_url") or not source.get("item_record_url"):
-                                errors.append(f"{source_path}: public reference lacks license_url or item_record_url")
-                        else:
+                        errors.extend(validate_reference_metadata(reference, source, source_path))
+                        if source.get("redistributable") is not True:
                             warnings.append(f"private reference: {profile_id}/{reference_id}")
                     except ValueError as exc:
                         errors.append(str(exc))
@@ -132,15 +126,8 @@ def main() -> int:
                             errors.append(f"missing reference: {ref_path}")
                     else:
                         counts["style_references"] += 1
-                        try:
-                            with Image.open(ref_path) as image:
-                                long_edge = max(image.size)
-                            if long_edge > MAX_REFERENCE_LONG_EDGE:
-                                errors.append(f"{ref_path}: long edge {long_edge}px exceeds {MAX_REFERENCE_LONG_EDGE}px")
-                            if ref_path.stat().st_size > MAX_REFERENCE_BYTES:
-                                errors.append(f"{ref_path}: {ref_path.stat().st_size} bytes exceeds {MAX_REFERENCE_BYTES}")
-                        except Exception as exc:
-                            errors.append(f"{ref_path}: unreadable image: {exc}")
+                        if source is not None:
+                            errors.extend(validate_reference_asset(ref_path, source, source_path))
 
     preset_paths = sorted((root / "presets").glob("*.json"))
     if not preset_paths:
@@ -158,11 +145,24 @@ def main() -> int:
                 defaults = resolved.get("workflow_defaults", {})
                 if resolved.get("preset") == "travel-food-journal":
                     required_defaults = {
-                        "ordering", "plan", "approval", "plate_pipeline", "qa", "revision", "packaging"
+                        "ordering", "plan", "approval", "renderer", "composition",
+                        "plate_pipeline", "qa", "revision", "packaging"
                     }
                     missing_defaults = sorted(required_defaults - set(defaults))
                     if missing_defaults:
                         errors.append(f"{preset}: default workflow missing {', '.join(missing_defaults)}")
+                    watermark = resolved.get("modules", {}).get("watermark", {})
+                    if watermark.get("enabled") is not False or watermark.get("text"):
+                        errors.append(f"{preset}: reusable default watermark must be disabled and empty")
+                    renderer = defaults.get("renderer", {})
+                    if renderer.get("backend_configured_by_default") is not False:
+                        errors.append(f"{preset}: reusable default must not claim a renderer backend")
+                    if renderer.get("validated_receipt_required_for_rendered_output") is not True:
+                        errors.append(f"{preset}: rendered outputs must require a validated renderer receipt")
+                    if renderer.get("external_reference_processing_requires_explicit_consent") is not True:
+                        errors.append(f"{preset}: external reference processing must require explicit consent")
+                    if defaults.get("composition", {}).get("strip_exif_gps_xmp") is not True:
+                        errors.append(f"{preset}: deterministic outputs must strip EXIF/GPS/XMP")
                 warnings.extend(f"{preset.name}: {message}" for message in preset_warnings)
             except ValueError as exc:
                 errors.append(f"{preset}: {exc}")

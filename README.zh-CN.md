@@ -2,13 +2,17 @@
 
 > 留住那张照片，只换一种笔触去记。
 
-[English](README.md) | [中文](README.zh-CN.md)
+[English](README.md) | [繁體中文](README.zh-TW.md)
 
 你拍了一路的照片，想把它整理成一套手帐轮播，发小红书或 IG。直接丢给模型，它会画得很漂亮，但杯子变大了，街景变假了，你的那张照片不见了。
 
 印痕做的是反过来的：把你的照片锁住，只在笔触上做变化。
 
 `locoda/photo-imprint-skill` · skill 本身是英文的，中文名叫印痕
+
+```
+请帮我安装这个 skill：https://github.com/locoda/photo-imprint-skill
+```
 
 ---
 
@@ -40,10 +44,6 @@
 ---
 
 ## 怎么用
-
-对你的 agent 说：
-
-> 帮我安装 locoda/photo-imprint-skill
 
 装好后，三步：
 

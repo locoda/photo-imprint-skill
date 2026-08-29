@@ -85,6 +85,7 @@ MIT — see [LICENSE](LICENSE).
 
 ## Credits
 
+- Style references: Allen Tucker *Highway 485* and *Watercolor No. 73, Blue and Lavender* — independently selectable, with technique roles and subject-leakage exclusions
 - Workflow and boundaries: `SKILL.md`
 - Samples in `assets/samples/`, all locally compressed
 - No licensed fonts or images that need extra permission

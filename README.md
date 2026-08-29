@@ -1,93 +1,93 @@
 # Photo Imprint (印痕)
 
-> 留住那张照片，只换一种笔触去记。
+> Keep the photo, remember it in a different stroke.
 
 [English](README.md) | [中文](README.zh-CN.md)
 
-你拍了一路的照片，想把它整理成一套手帐轮播，发小红书或 IG。直接丢给模型，它会画得很漂亮，但杯子变大了，街景变假了，你的那张照片不见了。
+You came back with a camera roll full of drinks, airplane trays, street corners in Roppongi. You want to turn them into a little journal carousel for Xiaohongshu or IG. If you just prompt a model, it looks pretty, but the cup gets bigger, the street gets fake, and your photo disappears.
 
-印痕做的是反过来的：把你的照片锁住，只在笔触上做变化。
+Photo Imprint does the opposite: it locks your photo in place and only changes the brush.
 
-`locoda/photo-imprint-skill` · skill 本身是英文的，中文名叫印痕
+`locoda/photo-imprint-skill` · the skill itself is in English, Chinese name is 印痕
 
 ---
 
-## 想把一堆旅行照整理成一套手帐的时候
+## When you want a whole trip to feel like one little journal
 
-比如刚从日本回来，手机里一堆喝过的杯子、在飞机上、六本木街头的照片。想发，但原片太杂，不想露脸，也不想让模型瞎编一个东京塔。
+Say you just got back from Japan. Your phone is full of cups you've had, in-flight moments, that one on a Roppongi street. You want to post them, but the raw photos are messy, you don't want to show your face, and you don't want the model to invent a Tokyo Tower that was never there.
 
-你想要的是：
+What you want is:
 
-- 小杯还是小杯，盖子、logo 都在原来的位置
-- 背景收干净，只留一点纸的呼吸感，不编造
-- 三张图放在一起，看起来像同一本手帐
+- small cup stays small cup, lid and logo right where they were
+- background cleaned up, just a little paper breathing room, nothing invented
+- three images together that feel like the same book
 
-印痕就是为这个时刻做的。
+That's the moment Photo Imprint is for.
 
-### 前后对比
+### Before / After
 
-| 印痕画的 | 你的原片（已模糊，保护隐私） |
+| What Photo Imprint draws | Your source (blurred for privacy) |
 |---|---|
-| ![印痕 01](assets/samples/01-sjc-small-cup-paper-locked-v11.webp) | ![原片 01](assets/samples/source-01.webp) |
-| 小杯还是小杯，盖子比例都在，50% 留白，字在上面 | SJC Airport 那个绿饮，透明盖 |
-| ![印痕 02](assets/samples/02-in-flight-paper-locked-v11.webp) | ![原片 02](assets/samples/source-02.webp) |
-| 机舱化成一块淡淡的颜色，不编造天空 | 飞机上端着杯子的那张 |
-| ![印痕 03](assets/samples/03-roppongi-paper-locked-v11.webp) | ![原片 03](assets/samples/source-03.webp) |
-| 背景只剩一点线，不加东京塔 | 六本木街头的那杯 |
+| ![imprint 01](assets/samples/01-sjc-small-cup-paper-locked-v11.webp) | ![source 01](assets/samples/source-01.webp) |
+| Small cup stays small, 50% paper white, caption on top | That green drink at SJC Airport, clear lid |
+| ![imprint 02](assets/samples/02-in-flight-paper-locked-v11.webp) | ![source 02](assets/samples/source-02.webp) |
+| Cabin softened into a faint color block, no invented sky | The one holding a cup on the plane |
+| ![imprint 03](assets/samples/03-roppongi-paper-locked-v11.webp) | ![source 03](assets/samples/source-03.webp) |
+| Background reduced to a few lines, no Tokyo Tower added | That cup on a Roppongi street |
 
-样张都压成了 webp，不到 100KB，放在 `assets/samples/`。原片都做了 12px 模糊。最后导出的 1152×2048 jpg 在 400KB 左右，不带 EXIF。
-
----
-
-## 怎么用
-
-对你的 agent 说：
-
-> 帮我安装 locoda/photo-imprint-skill
-
-装好后，三步：
-
-1. 把照片丢进去，按拍摄时间排好
-2. 先只画第一张，你和它一起看看计划对不对
-3. 你说可以了，它再去画剩下的，跑完检查，打包成 ZIP
-
-中间任何时候你说「这里不对」，它只改你说的那一点，不会重来一整套。
-
-工具会告诉你下一步该做什么，不会自己偷偷往前跑。
+Samples are compressed to webp <100KB in `assets/samples/`. Sources are blurred 12px. Final exports are 1152×2048 jpg ~400KB, no EXIF.
 
 ---
 
-## 它怎么留住你的照片
+## How to use
 
-不是靠一句 prompt。它把五件事拆开管：
+Tell your agent:
 
-- 画什么，听你的原片
-- 怎么画，参考你给的水彩感觉，但不抄它的内容
-- 哪些要分开，图是图，纸是纸，字是字
-- 放哪儿，9:16 的纸，字在哪里，图占多大，都有定数
-- 怎么像一套，三张的亮度、颗粒、留白是一样的
+> Help me install locoda/photo-imprint-skill
 
-锁住的是轮廓和比例，松开的是笔触。杯口那一点点化开，只在边上，颜色也从你照片里取，不自己发明。
+Once installed, three steps:
+
+1. Drop your photos in, they get sorted by when you took them
+2. It draws just the first page, you look at the plan together
+3. When you say go, it draws the rest, checks everything, and zips it up
+
+If you say "this part feels off" at any point, it only fixes that part — it doesn't redo the whole set.
+
+The tool tells you what to do next, it doesn't run ahead on its own.
 
 ---
 
-## 以后想做成什么样
+## How it keeps your photo
 
-- 风景照的模板（现在这套是杯子在上的，风景在下的还在补）
-- 更轻的安装，不用 pip 一串
-- 更直观的改法，不用记那几个英文动词
+Not one prompt. It keeps five things separate:
+
+- what to draw — from your source photo
+- how to draw it — watercolor feel from your reference, but not its content
+- what stays separate — image is image, paper is paper, type is type
+- where it goes — 9:16 paper, where the caption sits, how big the subject is, all fixed
+- how it feels like a set — same brightness, same grain, same white space
+
+What stays locked is the silhouette and proportions. What changes is the stroke. A little diffusion at the edge, color sampled from your photo, never invented.
+
+---
+
+## What we want to try next
+
+- A template for open scenery (current set is cup-on-top, scenery-below is still coming)
+- Lighter install, no long pip chain
+- More intuitive edits, without remembering those English verbs
 
 ---
 
 ## License
 
-MIT — 详见 [LICENSE](LICENSE)。
+MIT — see [LICENSE](LICENSE).
 
-## 致谢
+## Credits
 
-- 做法和边界以 `SKILL.md` 为准
-- 例子在 `assets/samples/`，都是本地压的
-- 没有用需要额外授权的字体或图片
+- Workflow and boundaries: `SKILL.md`
+- Samples in `assets/samples/`, all locally compressed
+- No licensed fonts or images that need extra permission
 
 ---
 
@@ -95,12 +95,12 @@ MIT — 详见 [LICENSE](LICENSE)。
 
 Made by [1mether](https://1mether.me).
 
-## 如果对你有用
+## If this helps
 
-如果它帮你把一趟旅程整理成了你喜欢的样子，考虑给仓库点一个 star。
+If it helped you turn a trip into something you like, consider starring the repo.
 
 If this skill is useful to you, consider starring the repository.
 
 ---
 
-*留住那张照片，只换一种笔触。*
+*Keep the photo, just remember it in a different stroke.*

@@ -85,6 +85,7 @@ MIT — 詳見 [LICENSE](LICENSE)。
 
 ## 致謝
 
+- 風格參考：Allen Tucker《Highway 485》和《Watercolor No. 73, Blue and Lavender》——可獨立選擇，技法分工，避免主體洩漏
 - 做法和邊界以 `SKILL.md` 為準
 - 範例在 `assets/samples/`，都是本地壓的
 - 沒有用需要額外授權的字型或圖片

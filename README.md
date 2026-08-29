@@ -1,115 +1,106 @@
 # Photo Imprint (印痕)
 
-> Keep the photo, remember it in a different stroke. 留住那张照片，只换一种笔触去记。
+> 留住那张照片，只换一种笔触去记。
 
 [English](README.md) | [中文](README.zh-CN.md)
 
+你拍了一路的照片，想把它整理成一套手帐轮播，发小红书或 IG。直接丢给模型，它会画得很漂亮，但杯子变大了，街景变假了，你的那张照片不见了。
 
-Photo Imprint keeps that photo — silhouette, proportions, cap, logo — and only changes the stroke you remember it with. Real travel photos → a consistent illustrated journal carousel for IG / Xiaohongshu.
+印痕做的是反过来的：把你的照片锁住，只在笔触上做变化。
 
-`locoda/photo-imprint-skill` · English skill, Chinese name 印痕
+`locoda/photo-imprint-skill` · skill 本身是英文的，中文名叫印痕
 
-## See what it does
+---
 
-Direct prompting makes a pretty picture that forgets your photo. Photo Imprint locks what matters and only abstracts the brushwork.
+## 想把一堆旅行照整理成一套手帐的时候
 
-| Photo Imprint (Template B – drink-minimal-caption-above) | Source photo (blurred for privacy) |
+比如刚从日本回来，手机里一堆喝过的杯子、在飞机上、六本木街头的照片。想发，但原片太杂，不想露脸，也不想让模型瞎编一个东京塔。
+
+你想要的是：
+
+- 小杯还是小杯，盖子、logo 都在原来的位置
+- 背景收干净，只留一点纸的呼吸感，不编造
+- 三张图放在一起，看起来像同一本手帐
+
+印痕就是为这个时刻做的。
+
+### 前后对比
+
+| 印痕画的 | 你的原片（已模糊，保护隐私） |
 |---|---|
-| ![imprint 01](assets/samples/01-sjc-small-cup-paper-locked-v11.webp) | ![source 01 (blurred)](assets/samples/source-01.webp) |
-| Same cup, same lid, same proportion. 50% paper white, caption `SJC Airport` at y=300 / y=367, diffusion ≤10% width, 2–3 edge bleeds only | SJC Airport – small cup, green drink, clear lid (source blurred 12px) |
-| ![imprint 02](assets/samples/02-in-flight-paper-locked-v11.webp) | ![source 02 (blurred)](assets/samples/source-02.webp) |
-| Cup locked, cabin simplified to cool wash, no invented skyline | In-flight cup in hand (source blurred) |
-| ![imprint 03](assets/samples/03-roppongi-paper-locked-v11.webp) | ![source 03 (blurred)](assets/samples/source-03.webp) |
-| Cup locked, background strongly simplified, no Tokyo Tower invented | Roppongi street cup (source blurred) |
+| ![印痕 01](assets/samples/01-sjc-small-cup-paper-locked-v11.webp) | ![原片 01](assets/samples/source-01.webp) |
+| 小杯还是小杯，盖子比例都在，50% 留白，字在上面 | SJC Airport 那个绿饮，透明盖 |
+| ![印痕 02](assets/samples/02-in-flight-paper-locked-v11.webp) | ![原片 02](assets/samples/source-02.webp) |
+| 机舱化成一块淡淡的颜色，不编造天空 | 飞机上端着杯子的那张 |
+| ![印痕 03](assets/samples/03-roppongi-paper-locked-v11.webp) | ![原片 03](assets/samples/source-03.webp) |
+| 背景只剩一点线，不加东京塔 | 六本木街头的那杯 |
 
-All samples are locally compressed to webp <100KB (`assets/samples/`). Source photos are blurred 12px for privacy. Full 1152×2048 finals are 399–430KB jpg, no EXIF.
+样张都压成了 webp，不到 100KB，放在 `assets/samples/`。原片都做了 12px 模糊。最后导出的 1152×2048 jpg 在 400KB 左右，不带 EXIF。
 
-Template A (travel-scene-caption-below) is the same idea — image lower, caption below — for open scenes. Share 2–3 scene photos and I will add a Template A example in the same folder.
+---
 
-## Install and use
+## 怎么用
 
-```bash
-npx skills add locoda/photo-imprint-skill
-# or
-git clone https://github.com/locoda/photo-imprint-skill.git
-pip install -r requirements.txt
-python3 bin/check_environment.py
-```
+对你的 agent 说：
 
-3 steps:
+> 帮我安装 locoda/photo-imprint-skill
 
-```bash
-# 1. EXIF order + manifest
-python3 bin/preprocess.py --input /path/to/photos --output work/manifest.json --config work/resolved-config.json
+装好后，三步：
 
-# 2. Plan + sample only
-python3 bin/build_production_plan.py --render-plan work/render-plan.json --output work/production-plan.md
-# render page 1, discuss plan+sample together
+1. 把照片丢进去，按拍摄时间排好
+2. 先只画第一张，你和它一起看看计划对不对
+3. 你说可以了，它再去画剩下的，跑完检查，打包成 ZIP
 
-# 3. After explicit approval → batch → QA → ZIP
-python3 bin/package_verified.py package --input work/final --output dist/carousel.zip
-```
+中间任何时候你说「这里不对」，它只改你说的那一点，不会重来一整套。
 
-`workflow.py status` / `next` never writes, it only tells you what to do next.
+工具会告诉你下一步该做什么，不会自己偷偷往前跑。
 
-## How it works
+---
 
-Not a prompt collection. A gated workflow that keeps 5 concerns independent — so the stroke changes, the photo stays:
+## 它怎么留住你的照片
 
-1. **Theme** – what to draw (source photo is authority)
-2. **Style** – how to draw it (wash, edge, value from a reference, never its subject)
-3. **Layers** – what stays separate (plate / paper / typography)
-4. **Composition** – where it goes (deterministic 9:16, 1152×2048, paper `rgb(247,244,235)`)
-5. **Unification** – how the set stays one (same brightness, grain, caption y=300/367)
+不是靠一句 prompt。它把五件事拆开管：
 
-Principle:
+- 画什么，听你的原片
+- 怎么画，参考你给的水彩感觉，但不抄它的内容
+- 哪些要分开，图是图，纸是纸，字是字
+- 放哪儿，9:16 的纸，字在哪里，图占多大，都有定数
+- 怎么像一套，三张的亮度、颗粒、留白是一样的
 
-```
-photos → EXIF order → per-page brief (preserve / simplify / omit) → production-plan.md
-      → render page 1 only → hash-lock sample style contract
-      → discuss plan+sample → explicit approval
-      → batch 2..N with frozen contract → clean-plate normalization
-      → deterministic composition → two-level QA → verified ZIP (no EXIF/GPS/XMP)
-```
+锁住的是轮廓和比例，松开的是笔触。杯口那一点点化开，只在边上，颜色也从你照片里取，不自己发明。
 
-Shape-lock is why it keeps the photo: Template B locks cup/bottle silhouette, proportions, cap/lid, logo position; abstraction only in brushwork, with 2–3 ultra-light edge bleeds ≤10% width right / ≤8% height bottom, colors sampled from subject itself.
+---
 
-Typed revisions (`remove`, `retain_but_simplify`, `add_as_secondary`, `preserve_unchanged`) keep “the roads feel strange” from becoming “delete every road”.
+## 以后想做成什么样
 
-## 2 layout templates
+- 风景照的模板（现在这套是杯子在上的，风景在下的还在补）
+- 更轻的安装，不用 pip 一串
+- 更直观的改法，不用记那几个英文动词
 
-**Template A `travel-scene-caption-below`** – image lower (center 58–62%, scale 38–45%), caption below, ~50% negative space top/sides.
+---
 
-**Template B `drink-minimal-caption-above`** – caption above at y=300/367, subject centered 60–65% (scale 32–40%, small cup stays small), same 50% paper, restrained diffusion. Current 3-page set uses this.
+## License
 
-Full fields: canvas, paper, placement, typography (`NotoSerifDisplay-Regular 48pt / Light 27pt`, `#403C44`), diffusion limits, forbidden elements.
+MIT — 详见 [LICENSE](LICENSE)。
 
-## vs naive prompting
+## 致谢
 
-| Naive | Photo Imprint |
-|---|---|
-| One prompt for all | Per-page brief + frozen style contract |
-| Invents background | Forbidden-inventions list enforced |
-| Small cup → big cup | Shape-lock, small stays small |
-| 3 pages 3 papers | Unified warm white, same grain/brightness |
-| No review | Page-level compliance + set-level cohesion |
+- 做法和边界以 `SKILL.md` 为准
+- 例子在 `assets/samples/`，都是本地压的
+- 没有用需要额外授权的字体或图片
 
-## Project layout
+---
 
-```
-SKILL.md                  # workflow (English)
-presets/travel-food-journal.json
-profiles/{themes,styles,layers,compositions,unification}/
-assets/samples/           # before/after (webp <100KB)
-assets/style-packs/       # Smithsonian public-domain packs
-tests/                    # 34 gate/regression checks
-```
+## Made by
 
-Private references stay local and are never sent externally without explicit consent.
+Made by [1mether](https://1mether.me).
 
-## Validation
+## 如果对你有用
 
-```bash
-python3 -m unittest discover -s tests -v
-python3 bin/validate_skill.py --json
-```
+如果它帮你把一趟旅程整理成了你喜欢的样子，考虑给仓库点一个 star。
+
+If this skill is useful to you, consider starring the repository.
+
+---
+
+*留住那张照片，只换一种笔触。*

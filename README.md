@@ -2,13 +2,17 @@
 
 > Keep the photo, remember it in a different stroke.
 
-[English](README.md) | [中文](README.zh-CN.md)
+[简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md)
 
 You came back with a camera roll full of drinks, airplane trays, street corners in Roppongi. You want to turn them into a little journal carousel for Xiaohongshu or IG. If you just prompt a model, it looks pretty, but the cup gets bigger, the street gets fake, and your photo disappears.
 
 Photo Imprint does the opposite: it locks your photo in place and only changes the brush.
 
 `locoda/photo-imprint-skill` · the skill itself is in English, Chinese name is 印痕
+
+```
+Please help me install this skill: https://github.com/locoda/photo-imprint-skill
+```
 
 ---
 
@@ -40,10 +44,6 @@ Samples are compressed to webp <100KB in `assets/samples/`. Sources are blurred 
 ---
 
 ## How to use
-
-Tell your agent:
-
-> Help me install locoda/photo-imprint-skill
 
 Once installed, three steps:
 

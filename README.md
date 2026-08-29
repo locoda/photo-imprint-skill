@@ -4,7 +4,8 @@
 
 [English](README.md) | [中文](README.zh-CN.md)
 
-Photo Imprint keeps that photo — silhouette, proportions, cap, logo — and only changes the stroke you remember it with. Real travel photos → a consistent 9:16 watercolor journal carousel for IG / Xiaohongshu.
+
+Photo Imprint keeps that photo — silhouette, proportions, cap, logo — and only changes the stroke you remember it with. Real travel photos → a consistent illustrated journal carousel for IG / Xiaohongshu.
 
 `locoda/photo-imprint-skill` · English skill, Chinese name 印痕
 
@@ -12,14 +13,14 @@ Photo Imprint keeps that photo — silhouette, proportions, cap, logo — and on
 
 Direct prompting makes a pretty picture that forgets your photo. Photo Imprint locks what matters and only abstracts the brushwork.
 
-| Source photo (blurred for privacy) | Photo Imprint (Template B – drink-minimal-caption-above) |
+| Photo Imprint (Template B – drink-minimal-caption-above) | Source photo (blurred for privacy) |
 |---|---|
-| ![source 01 (blurred)](assets/samples/source-01.webp) | ![imprint 01](assets/samples/01-sjc-small-cup-paper-locked-v11.webp) |
-| SJC Airport – small cup, green drink, clear lid (source blurred 12px) | Same cup, same lid, same proportion. 50% paper white, caption `SJC Airport` at y=300 / y=367, diffusion ≤10% width, 2–3 edge bleeds only |
-| ![source 02 (blurred)](assets/samples/source-02.webp) | ![imprint 02](assets/samples/02-in-flight-paper-locked-v11.webp) |
-| In-flight cup in hand (source blurred) | Cup locked, cabin simplified to cool wash, no invented skyline |
-| ![source 03 (blurred)](assets/samples/source-03.webp) | ![imprint 03](assets/samples/03-roppongi-paper-locked-v11.webp) |
-| Roppongi street cup (source blurred) | Cup locked, background strongly simplified, no Tokyo Tower invented |
+| ![imprint 01](assets/samples/01-sjc-small-cup-paper-locked-v11.webp) | ![source 01 (blurred)](assets/samples/source-01.webp) |
+| Same cup, same lid, same proportion. 50% paper white, caption `SJC Airport` at y=300 / y=367, diffusion ≤10% width, 2–3 edge bleeds only | SJC Airport – small cup, green drink, clear lid (source blurred 12px) |
+| ![imprint 02](assets/samples/02-in-flight-paper-locked-v11.webp) | ![source 02 (blurred)](assets/samples/source-02.webp) |
+| Cup locked, cabin simplified to cool wash, no invented skyline | In-flight cup in hand (source blurred) |
+| ![imprint 03](assets/samples/03-roppongi-paper-locked-v11.webp) | ![source 03 (blurred)](assets/samples/source-03.webp) |
+| Cup locked, background strongly simplified, no Tokyo Tower invented | Roppongi street cup (source blurred) |
 
 All samples are locally compressed to webp <100KB (`assets/samples/`). Source photos are blurred 12px for privacy. Full 1152×2048 finals are 399–430KB jpg, no EXIF.
 

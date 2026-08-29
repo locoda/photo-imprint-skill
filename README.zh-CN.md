@@ -4,7 +4,8 @@
 
 [English](README.md) | [中文](README.zh-CN.md)
 
-留住那张照片是谁，只换一种笔触去记。真实旅行照 → 一套风格统一的 9:16 水彩手帐轮播，发小红书 / IG 用。
+
+留住那张照片是谁，只把笔触换成手绘。真实旅行照 → 一套风格统一的手帐轮播，发小红书 / IG 用。
 
 `locoda/photo-imprint-skill` · 英文 skill，中文名印痕
 
@@ -12,14 +13,14 @@
 
 直接用 prompt 渲，好看但会忘掉你的照片。印痕把轮廓、比例、盖子、logo 位置锁住，只在笔触上抽象。
 
-| 原片（已模糊处理，保护隐私） | Photo Imprint（Template B – drink-minimal-caption-above） |
+| Photo Imprint（Template B – drink-minimal-caption-above） | 原片（已模糊处理，保护隐私） |
 |---|---|
-| ![原片 01 已模糊](assets/samples/source-01.webp) | ![印痕 01](assets/samples/01-sjc-small-cup-paper-locked-v11.webp) |
-| SJC Airport – 小杯、绿饮、透明盖（原片 12px 模糊） | 同一个杯、同一个盖、同样比例。50% 留白，caption 在 y=300/367，扩散只在贴边 2-3 处，≤10% 宽度 |
-| ![原片 02 已模糊](assets/samples/source-02.webp) | ![印痕 02](assets/samples/02-in-flight-paper-locked-v11.webp) |
-| 飞机上端杯（原片已模糊） | 杯型锁定，机舱简化成冷色块，不编造天空 |
-| ![原片 03 已模糊](assets/samples/source-03.webp) | ![印痕 03](assets/samples/03-roppongi-paper-locked-v11.webp) |
-| 六本木街头杯（原片已模糊） | 杯型锁定，背景强简化，不编造东京塔 |
+| ![印痕 01](assets/samples/01-sjc-small-cup-paper-locked-v11.webp) | ![原片 01 已模糊](assets/samples/source-01.webp) |
+| 同一个杯、同一个盖、同样比例。50% 留白，caption 在 y=300/367，扩散只在贴边 2-3 处，≤10% 宽度 | SJC Airport – 小杯、绿饮、透明盖（原片 12px 模糊） |
+| ![印痕 02](assets/samples/02-in-flight-paper-locked-v11.webp) | ![原片 02 已模糊](assets/samples/source-02.webp) |
+| 杯型锁定，机舱简化成冷色块，不编造天空 | 飞机上端杯（原片已模糊） |
+| ![印痕 03](assets/samples/03-roppongi-paper-locked-v11.webp) | ![原片 03 已模糊](assets/samples/source-03.webp) |
+| 杯型锁定，背景强简化，不编造东京塔 | 六本木街头杯（原片已模糊） |
 
 所有样张已本地压缩成 webp <100KB，放在 `assets/samples/`，原片 12px 模糊保护隐私。完整 1152×2048 终版 jpg 399–430KB，无 EXIF。
 
@@ -58,8 +59,8 @@ python3 bin/package_verified.py package --input work/final --output dist/carouse
 1. **Theme** – 画什么（原片是权威）
 2. **Style** – 怎么画（水洗、边缘、明度分组来自参考图，不带它的主体）
 3. **Layers** – 什么必须分层（plate / 纸 / 文字）
-4. **Composition** – 放哪（确定性合成，9:16，1152×2048，纸色 `rgb(247,244,235)`）
-5. **Unification** – 怎么统一（同亮度、同颗粒、同 caption y=300/367）
+4. **Composition** – 放哪（确定性合成，纸色 `rgb(247,244,235)`，默认可调）
+5. **Unification** – 怎么统一（同亮度、同颗粒、同 caption）
 
 流程：
 
@@ -71,15 +72,15 @@ photos → EXIF 排序 → 每页 production_brief（保留/简化/省略）→ 
       → 确定性合成 → 双层 QA → 已验证 ZIP（无 EXIF/GPS/XMP）
 ```
 
-为什么能留住那张照片：Template B 锁定杯/瓶轮廓、比例、盖子、logo 位置，抽象只在笔触和边缘，扩散克制 2-3 处贴边溶色（右侧 ≤10% 宽度，底部 ≤8% 高度），颜色取自主图。
+为什么能留住那张照片：Template B 锁定杯/瓶轮廓、比例、盖子、logo 位置，抽象只在笔触和边缘，扩散克制 2-3 处贴边溶色，颜色取自主图。
 
 批准后改动用四种操作（`remove` / `retain_but_simplify` / `add_as_secondary` / `preserve_unchanged`），避免“路有点怪”被误读成“把路全删了”。
 
 ## 两套布局模板
 
-**Template A `travel-scene-caption-below`** – 图偏下（中心 58-62%，高度 38-45%），caption 在图下方，约 50% 留白。
+**Template A `travel-scene-caption-below`** – 图偏下，caption 在图下方，约 50% 留白。
 
-**Template B `drink-minimal-caption-above`** – caption 在上方 y=300/367，主体居中偏下 60-65%（高度 32-40%，小杯保持小），同留白，扩散克制。当前三张就用这个。
+**Template B `drink-minimal-caption-above`** – caption 在上方，主体居中偏下，小杯保持小，同留白，扩散克制。当前三张就用这个。
 
 完整字段见 `production-plan.md`。
 

@@ -1,13 +1,13 @@
 ---
 name: "photo_imprint"
 version: "1.2.0"
-description: "Photo Imprint (印痕) - Use when turning photos into a consistent illustrated social-media carousel (including 照片转手绘轮播): EXIF ordering, source-specific visual briefs, a plan+sample approval gate, clean-plate normalization, deterministic composition, typed revisions, two-level visual QA, and verified packaging. English skill; repo locoda/photo-imprint-skill."
+description: "Photo Imprint (印痕) — 留住那张照片，只换一种笔触去记。Use when turning photos into a consistent illustrated social-media carousel (including 照片转手绘轮播): keep silhouette/proportions/anchors, redraw in watercolor. EXIF ordering, source-specific briefs, plan+sample gate, clean-plate normalization, deterministic composition, typed revisions, two-level QA, verified packaging."
 ---
 
 # Photo Imprint (印痕)
 
 ## Purpose
-Convert photos into one coherent illustrated carousel while keeping five controls independent: theme, style, layers, composition, and unification. `presets/travel-food-journal.json` supplies complete workflow defaults; actual subject plates still require a configured renderer and validated receipt. Two independent, opt-in Smithsonian reference packs are bundled: `blue-lavender-watercolor` and `highway-485-lithograph`; neither replaces the preset default or may contribute its depicted subjects. See `references/configuration.md` for defaults and overrides.
+Keep the photo, remember it in a different stroke. 留住那张照片，只换一种笔触去记。Convert photos into one coherent illustrated carousel — keep silhouette, proportions, cap/lid, logo position, only the brushwork changes. `presets/travel-food-journal.json` supplies complete workflow defaults; actual subject plates still require a configured renderer and validated receipt. Two independent, opt-in Smithsonian reference packs are bundled: `blue-lavender-watercolor` and `highway-485-lithograph`; neither replaces the preset default or may contribute its depicted subjects. See `references/configuration.md` for defaults and overrides.
 
 ## Workflow
 

@@ -37,15 +37,19 @@ These values are the preset's truth, visible without opening JSON. If a project 
 | Concern | Default Value | Executable Source |
 |---|---|---|
 | Canvas | 9:16 vertical, 1080×1920 px, deterministic | `composition.vertical-journal` |
-| Paper | warm #FAF6F0, shared across set, 50% blank space minimum | `unification.warm-paper-journal` |
-| Caption position | Template A travel-scene: below image; Template B drink-minimal: above image, two lines `location` / `date` | `presets.travel-food-journal.modules.caption` + composition |
+| Paper | warm #F1EBDD, shared across set, 50% blank space minimum (sample shows #FAF6F0 warm) | `unification.warm-paper-journal` |
+| Caption position | bottom-center, below subject, two lines `location` / `date`, `center_y_ratio=0.72`, `top_clear=0.55`, `edge_margin=0.07`, `min_clearance=0.08` | `composition.vertical-journal.caption_zone` |
 | Caption typography | Noto Sans Light 30px at 1080px, #3B3832, textured serif fallback, EXIF-confirmed only | preset caption module |
 | Style default | `watercolor-journal` loose observational line + transparent low-sat watercolor | `profiles.style = watercolor-journal` |
-| Style alternatives | `blue-lavender-watercolor`, `highway-485-lithograph`, `sumi-e-ink`, `hiroshige-bokashi`, `seurat-conte` — each opt-in, single-select, no blending | `profiles/styles/*.json` |
+| Style alternatives | 8 profiles in repo: 6 active — `blue-lavender-watercolor`, `highway-485-lithograph`, `sumi-e-ink`, `hiroshige-bokashi`, `seurat-conte`, `watercolor-journal` (default) + 2 pending `botanical-watercolor`, `paper-collage` — each opt-in, single-select, no blending | `profiles/styles/*.json` |
 | Order | EXIF capture_time ascending; fail closed if missing unless user authorizes draft | `workflow_defaults.ordering` |
 | Sample gate | first EXIF page only before approval; generated sample never becomes style reference | `workflow_defaults.approval` |
 | Renderer | no backend by default; validated receipt required for every output | `workflow_defaults.renderer` |
 | QA | full-size + 360×640 phone scale, page-level + set-level separate | `workflow_defaults.qa` |
+| Composition | 9:16 1152×2048, bottom-center, 55% top whitespace, 0.07 edge margin | `workflow_defaults.composition` |
+| Plate pipeline | normalize → compose, profile-driven cleanup | `workflow_defaults.plate_pipeline` |
+| Revision | feedback → revision-scope → re-compose | `workflow_defaults.revision` |
+| Packaging | stage → verify → ZIP | `workflow_defaults.packaging` |
 
 If any value above is absent in `work/resolved-config.json`, stop and rebuild config; do not substitute.
 
@@ -176,9 +180,9 @@ If renderer not configured → stop, report `renderer_receipt.status=not-configu
 
 - **Input:** user exact approval message string, `work/approval-state.json`
 - **Output:** `work/approval-state-approved.json`, `work/batch-scope.json` (pages 2..N), `work/last-step.md`
-- **Command:**
+- **Command (actual CLI):**
 ```bash
-python3 bin/review_gate.py approve --message "<exact user message>" --state work/approval-state.json --output work/approval-state-approved.json
+python3 bin/review_gate.py approve --state work/approval-state.json --approval-text "<exact user message>" --explicit-user-approval
 python3 bin/render_scope.py --render-plan work/render-plan.json --state work/approval-state-approved.json --mode batch --output work/batch-scope.json
 ```
 
@@ -215,7 +219,10 @@ If plate normalization fails (alpha missing for `alpha-required`, or paper-key r
 
 - **Input:** `work/composed/*.webp`, `work/render-plan.json`, `work/resolved-config.json`
 - **Output:** `work/qa-report.json`, `work/review-checklist.json`, `work/last-step.md`
-- **Command:** `python3 bin/qa_images.py --render-plan work/render-plan.json --config work/resolved-config.json --input-dir work/composed/ --output work/qa-report.json`
+- **Command (actual CLI):**
+```bash
+python3 bin/qa_images.py --input work/composed/ --output work/qa-report.json --config work/resolved-config.json --render-plan work/render-plan.json --plates work/plates/ --checklist-output work/review-checklist.json
+```
 
 Run QA. Open every final page at full size and phone scale, not only contact sheet.
 
@@ -232,7 +239,11 @@ If QA fails → fix causal layer (plate, prompt, or composition), not cosmetic p
 
 - **Input:** user feedback string, `work/review-checklist.json`
 - **Output:** `work/revision-scope.json`, updated plates/composed if needed, `work/last-step.md`
-- **Command:** `python3 bin/revision_scope.py --feedback "<text>" --checklist work/review-checklist.json --output work/revision-scope.json`
+- **Command (actual CLI):**
+```bash
+python3 bin/revision_scope.py --render-plan work/render-plan.json --state work/approval-state.json --staging-manifest work/composition-manifest.json --changes '{"changes":[]}' --request-text "<exact user text>" --impact page-local --output work/revision-scope.json
+# or --impact sample-style-system when touching sample/style/shared/source-order
+```
 
 For non-sample page-local corrections, create changes using only: `remove`, `retain_but_simplify`, `add_as_secondary`, `preserve_unchanged`. Scope marks only affected pages stale and hash-locks unchanged approved pages.
 
@@ -244,10 +255,11 @@ If revision touches gate-reset domains (`sample`, `style-reference`, `shared-sys
 
 - **Input:** `work/composed/*.webp`, `work/review-checklist.json`, `work/composition-manifest.json`
 - **Output:** `work/staged/` (numbered 01..N), `work/package.zip`, `work/package-manifest.json`, `work/trusted-manifest.json`, `work/verify-report.json`
-- **Command:**
+- **Command (actual CLI):**
 ```bash
-python3 bin/package_verified.py stage --input-dir work/composed/ --output-dir work/staged/
-python3 bin/package_verified.py verify --staged-dir work/staged/ --manifest work/composition-manifest.json --checklist work/review-checklist.json --output work/verify-report.json
+python3 bin/package_verified.py stage --input work/composed/ --output work/staged/
+python3 bin/package_verified.py package --input work/composed/ --staging-manifest work/composition-manifest.json --review-checklist work/review-checklist.json --state work/approval-state.json --composition-manifest work/composition-manifest.json --output work/package.zip --manifest-output work/trusted-manifest.json
+python3 bin/package_verified.py verify --zip work/package.zip --manifest work/trusted-manifest.json
 ```
 
 Lock staged numbered images; rerun QA against exact stage and approved config/plan; package with composition manifest only after checklist validation; then verify. Packaging revalidates current sources, confirmed captions, renderer/plate provenance, QA input locks, review evidence, exact staged bytes. Artifact delivery copies verified staged outputs and must not regenerate images.

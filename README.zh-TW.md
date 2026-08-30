@@ -43,6 +43,29 @@
 
 ---
 
+
+## 風格任選 — 同一杯，換筆觸
+
+風格只改怎麼畫，不改畫什麼。選一種，全程鎖死。同一個星巴克杯，三種 Artvee 筆觸：
+
+| `sumi-e-ink` 芝田浙信 1847 | `hiroshige-bokashi` 廣重 1833 去雨版 | `seurat-conte` 修拉 1882 |
+|---|---|---|
+| ![sumi-e 杯](assets/samples/style-sumi-e-cup.webp) | ![廣重 bokashi 杯](assets/samples/style-hiroshige-bokashi-cup.webp) | ![修拉 conte 杯](assets/samples/style-seurat-conte-cup.webp) |
+| 疏朗墨線、淡墨陰影、大留白 | 平塗 + bokashi 漸層，無斜雨線，前景木版化 | 無硬輪廓、絨面 Conté 排線、明暗塑形 |
+
+**已打包、可直接用（5個）：**
+
+- `blue-lavender-watercolor` — 透明水洗，冷藍/薰衣草明度分組，紙白呼吸（Smithsonian / Allen Tucker）—— 見上 3 張範例
+- `highway-485-lithograph` — 稀疏斷續輪廓，紙白留白，克制重色點綴（Smithsonian / Allen Tucker）
+- `sumi-e-ink` — 芝田浙信《茶壺與杯子》1847：疏朗墨線、淡墨陰影、大留白
+- `hiroshige-bokashi` — 歌川廣重《庄野白雨》1833 去雨版：平塗 + bokashi 漸層，無斜雨線，前景木版化
+- `seurat-conte` — 修拉《修拉母親》1882–83：無硬輪廓，絨面 Conté 排線，明暗塑形
+
+**僅文字規則（待補參考圖）：** `botanical-watercolor`、`paper-collage`、`watercolor-journal` —— 可用，會提示待補。
+
+在 `profiles/styles/<id>.json` 裡切風格。一套輪播只用一種筆觸，EXIF 順序和 caption 鎖死，不編 logo/文字，不帶手/布。
+
+
 ## 怎麼用
 
 裝好後，三步：
@@ -79,29 +102,8 @@
 
 ---
 
-## License
-
-MIT — 詳見 [LICENSE](LICENSE)。
-
-## 致謝
-
-- 風格參考：Allen Tucker《Highway 485》和《Watercolor No. 73, Blue and Lavender》——可獨立選擇，技法分工，避免主體洩漏
-- 做法和邊界以 `SKILL.md` 為準
-- 範例在 `assets/samples/`，都是本地壓的
-- 沒有用需要額外授權的字型或圖片
-
 ---
-
-## Made by
 
 Made by [1mether](https://1mether.me).
 
-## 如果對你有用
-
-如果它幫你把一趟旅程整理成了你喜歡的樣子，考慮給倉庫點一個 star。
-
-If this skill is useful to you, consider starring the repository.
-
----
-
-*留住那張照片，只換一種筆觸。*
+*留住那張照片，只換一種筆觸去記。*

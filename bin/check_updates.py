@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""photo_imprint update checker — 24h throttled, non-blocking, provenance-aware.
+"""photo_imprint update checker — 7d throttled, non-blocking, provenance-aware.
 
 Patterns from:
 - vercel-labs/skills (skill-lock.json + tree SHA)
@@ -11,7 +11,7 @@ This checker:
 - reads local install SHA from git HEAD or .skill-lock.json
 - fetches remote main HEAD SHA via `gh api` or GitHub Trees API
 - compares; mismatch = update available
-- throttles to 24h via cache file (XDG cache or skill-root/.cache)
+- throttles to 7d via cache file (XDG cache or skill-root/.cache)
 - never blocks workflow; errors → "no update" with warning
 """
 from __future__ import annotations
@@ -32,7 +32,7 @@ from urllib.error import URLError, HTTPError
 SKILL_NAME = "photo_imprint"
 DEFAULT_REPO = "locoda/photo-imprint-skill"
 DEFAULT_BRANCH = "main"
-CACHE_TTL_SECONDS = 24 * 3600  # 24h throttle as you requested
+CACHE_TTL_SECONDS = 7 * 24 * 3600  # 7d throttle per 2026-08-30 request
 GITHUB_API_TIMEOUT = 10
 GIT_TIMEOUT = 30
 
@@ -226,11 +226,11 @@ def fetch_remote_sha(repo: str, branch: str = DEFAULT_BRANCH) -> tuple[str | Non
     return None, "none", elapsed
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="photo_imprint 24h throttled update checker (non-blocking)")
+    parser = argparse.ArgumentParser(description="photo_imprint 7d throttled update checker (non-blocking)")
     parser.add_argument("--repo", default=None, help=f"GitHub repo owner/name (default from SKILL.md or {DEFAULT_REPO})")
     parser.add_argument("--branch", default=DEFAULT_BRANCH, help="branch to check (default main)")
     parser.add_argument("--json", action="store_true", help="JSON output")
-    parser.add_argument("--force", action="store_true", help="ignore 24h cache")
+    parser.add_argument("--force", action="store_true", help="ignore 7d cache")
     parser.add_argument("--verbose", action="store_true")
     args = parser.parse_args()
 
@@ -272,7 +272,7 @@ def main() -> int:
                         if cached_result["update_available"]:
                             print(f"Update available (cached, {int(age//3600)}h ago): {repo} — local {local_version or '?'} vs remote newer")
                         else:
-                            print(f"Up to date (cached {int(age//3600)}h ago, TTL 24h)")
+                            print(f"Up to date (cached {int(age//3600)}h ago, TTL 7d)")
                         if args.verbose:
                             print(f"cache: {cache_file}")
                     return 0
@@ -342,7 +342,7 @@ def main() -> int:
             print(f"Update check: no network ({source}) — {reason}. Skipping (non-blocking).")
             print(f"  local {local_version or '?'} ({local_sha[:7] if local_sha else 'no SHA'})")
             if args.verbose:
-                print(f"  cache {cache_file} — TTL 24h, elapsed {int(elapsed_ms)}ms")
+                print(f"  cache {cache_file} — TTL 7d, elapsed {int(elapsed_ms)}ms")
             return 0
         if update_available:
             print(f"Update available: {repo}@{args.branch} — local {local_version or '?'} ({local_sha[:7] if local_sha else '?'}) → remote {remote_sha[:7]}")
@@ -350,7 +350,7 @@ def main() -> int:
         else:
             print(f"Up to date: {repo} — {local_version or ''} ({local_sha[:7] if local_sha else 'no SHA'}) matches remote {remote_sha[:7] if remote_sha else '?'} [{source} {int(elapsed_ms)}ms]")
         if args.verbose:
-            print(f"  cache {cache_file}, TTL 24h")
+            print(f"  cache {cache_file}, TTL 7d")
 
     return 0
 

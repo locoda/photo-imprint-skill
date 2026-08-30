@@ -4,106 +4,80 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-你拍了一路的照片，想把它整理成一套手帳輪播，發小紅書或 IG。直接丟給模型，它會畫得很漂亮，但杯子變大了，街景變假了，你的那張照片不見了。
+你從日本回來，手機裡一堆杯子、機艙、六本木街頭的照片，想整理成一套手帳輪播發小紅書或 IG。直接丟給模型，漂亮但小杯變大杯，還幫你加個東京鐵塔，你的那張不見了。
 
-印痕做的是反過來的：把你的照片鎖住，只在筆觸上做變化。
-
-`locoda/photo-imprint-skill` · skill 本身是英文的，中文名叫印痕
+`locoda/photo-imprint-skill` · 英文 skill，中文名印痕
 
 ```
 請幫我安裝這個 skill：https://github.com/locoda/photo-imprint-skill
 ```
 
----
+![license MIT](https://img.shields.io/badge/license-MIT-green) ![version 1.5.0](https://img.shields.io/badge/version-1.5.0-blue) ![tests 34 gates](https://img.shields.io/badge/tests-34%20gates-lightgrey)
 
-## 想把一堆旅行照整理成一套手帳的時候
-
-比如剛從日本回來，手機裡一堆喝過的杯子、在飛機上、六本木街頭的照片。想發，但原片太雜，不想露臉，也不想讓模型瞎編一個東京鐵塔。
-
-你想要的是：
-
-- 小杯還是小杯，蓋子、logo 都在原來的位置
-- 背景收乾淨，只留一點紙的呼吸感，不編造
-- 三張圖放在一起，看起來像同一本手帳
-
-印痕就是為這個時刻做的。
-
-### 前後對比
-
-| 印痕畫的 | 你的原片（已模糊，保護隱私） |
+| 印痕（下方置中，無字） | 原片已模糊，保護隱私 |
 |---|---|
-| ![印痕 01](assets/samples/01-sjc-small-cup-paper-locked-v11.webp) | ![原片 01](assets/samples/source-01.webp) |
-| 小杯還是小杯，蓋子比例都在，50% 留白，字在上面 | SJC Airport 那個綠飲，透明蓋 |
-| ![印痕 02](assets/samples/02-in-flight-paper-locked-v11.webp) | ![原片 02](assets/samples/source-02.webp) |
-| 機艙化成一塊淡淡的顏色，不編造天空 | 飛機上端著杯子的那張 |
-| ![印痕 03](assets/samples/03-roppongi-paper-locked-v11.webp) | ![原片 03](assets/samples/source-03.webp) |
-| 背景只剩一點線，不加東京鐵塔 | 六本木街頭的那杯 |
+| ![印痕01](assets/samples/01-sjc-small-cup-paper-locked-v11.webp) | ![原片01](assets/samples/source-01.webp) |
+| 小杯保持小，蓋子鎖死，50%紙白，下方置中 | SJC 小杯（12px模糊） |
+| ![印痕02](assets/samples/02-in-flight-paper-locked-v11.webp) | ![原片02](assets/samples/source-02.webp) |
+| 機艙簡化成冷色塊，不編天空 | 飛機上（已模糊） |
+| ![印痕03](assets/samples/03-roppongi-paper-locked-v11.webp) | ![原片03](assets/samples/source-03.webp) |
+| 背景強簡化，不編東京鐵塔 | 六本木街頭（已模糊） |
 
-範例都壓成了 webp，不到 100KB，放在 `assets/samples/`。原片都做了 12px 模糊。最後匯出的 1152×2048 jpg 在 400KB 左右，不帶 EXIF。
+範例 webp <100KB 在 `assets/samples/`，終版 1152×2048 jpg ~400KB，無 EXIF。
 
----
+## 一堆旅行照終於像一本手帳的時候
 
+**你：** 有10張日本的照片，想做成一套水彩手帳輪播，但原片太雜，不想露臉，也不想讓模型亂加地標。試過一個 prompt 套全部，第2張小杯就變大杯。
 
-## 風格任選 — 同一杯，換筆觸
+**印痕：** 把輪廓、比例、蓋子、logo 位置全部鎖住。丟5張真實風格縮圖給你選，選一種後只算第1頁，把 `production-plan.md` + 6欄位 style contract + 範例一起給你看，等你原話批准才批次 2..N。
 
-風格只改怎麼畫，不改畫什麼。選一種，全程鎖死。同一個星巴克杯，三種 Artvee 筆觸：
+**現在你可以：** 用第1張判斷整套，小杯保持小，4張全是暖紙 #FAF6F0、55%頂部留白、下方置中，沒有編造的地點/日期，拿到的 ZIP 已雙維 QA。
 
-| `sumi-e-ink` 芝田浙信 1847 | `hiroshige-bokashi` 廣重 1833 去雨版 | `seurat-conte` 修拉 1882 |
-|---|---|---|
-| ![sumi-e 杯](assets/samples/style-sumi-e-cup.webp) | ![廣重 bokashi 杯](assets/samples/style-hiroshige-bokashi-cup.webp) | ![修拉 conte 杯](assets/samples/style-seurat-conte-cup.webp) |
-| 疏朗墨線、淡墨陰影、大留白 | 平塗 + bokashi 漸層，無斜雨線，前景木版化 | 無硬輪廓、絨面 Conté 排線、明暗塑形 |
+## 怎麼做到的
 
-**已打包、可直接用（5個）：**
+### 鎖住該留的，只在筆觸上抽象
 
-- `blue-lavender-watercolor` — 透明水洗，冷藍/薰衣草明度分組，紙白呼吸（Smithsonian / Allen Tucker）—— 見上 3 張範例
-- `highway-485-lithograph` — 稀疏斷續輪廓，紙白留白，克制重色點綴（Smithsonian / Allen Tucker）
-- `sumi-e-ink` — 芝田浙信《茶壺與杯子》1847：疏朗墨線、淡墨陰影、大留白
-- `hiroshige-bokashi` — 歌川廣重《庄野白雨》1833 去雨版：平塗 + bokashi 漸層，無斜雨線，前景木版化
-- `seurat-conte` — 修拉《修拉母親》1882–83：無硬輪廓，絨面 Conté 排線，明暗塑形
+原片是權威。Template A/B 現在都走下方置中：主體 y=0.72 置中，1152×2048，暖紙，50%空白保底。shape-lock 鎖杯/瓶輪廓、高度、蓋子、logo，抽象只在筆觸和貼邊2-3處 ≤10%寬度溶色，顏色從主圖取。不帶手/布/相框。
 
-**僅文字規則（待補參考圖）：** `botanical-watercolor`、`paper-collage`、`watercolor-journal` —— 可用，會提示待補。
+### 單選風格，凍住合約，不混搭
 
-在 `profiles/styles/<id>.json` 裡切風格。一套輪播只用一種筆觸，EXIF 順序和 caption 鎖死，不編 logo/文字，不帶手/布。
+已打包5個：`watercolor-journal`（預設，下方置中）、`blue-lavender-watercolor`、`highway-485-lithograph`、`sumi-e-ink`（芝田浙信1847 疏朗墨線）、`hiroshige-bokashi`（廣重1833去雨 平塗+bokashi）、`seurat-conte`（秀拉1882 無硬輪廓 Conté排線）。選一種寫進 `work/style_choice.json`，凍進 `work/sample_style_contract.json`，批次時 hash-lock。要求混搭會拒絕。
 
+### 先 plan+範例，再批次，你說了算
 
-## 怎麼用
+不是 prompt 合集，是帶門禁的生產流：EXIF 排序 → 每頁 `production_brief` → `production-plan.md` → 只算第1頁 → 討論 → 明確批准 → 批次 2..N 用凍結合約 → 洗版 → 確定性合成 → 雙維 QA → 已驗證 ZIP。你跟 AI 說人話就行：
 
-裝好後，三步：
+> 我有10張日本照片在 /path/to/photos，幫我做成水彩手帳，小杯保持小，下方置中，上面55%留白，不要字。
 
-1. 把照片丟進去，按拍攝時間排好
-2. 先只畫第一張，你和它一起看看計畫對不對
-3. 你說可以了，它再去畫剩下的，跑完檢查，打包成 ZIP
+AI 按 EXIF 排序，缺 EXIF 會問是否授權 draft，丟5張風格，你說「你定」就用預設，算範例，等你說「批准第1張，繼續」。改圖說「第2張背景太滿」只重算第2張。私人參考圖只存本地，除非你說「可以上傳到 X」。
 
-中間任何時候你說「這裡不對」，它只改你說的那一點，不會重來一整套。
+<details>
+<summary>給 AI 的實作（人不用看）</summary>
 
-工具會告訴你下一步該做什麼，不會自己偷偷往前跑。
+6層：Config → Plan → Gate → Render → QA → Package。Invariants：EXIF不可變、範例僅第1張、範例不作參考、每張 plate 有 receipt、無 EXIF/GPS/XMP、不編造。
 
----
+預設 9:16 1152×2048、紙 #FAF6F0 50%留白、預設 watercolor-journal、EXIF升冪、QA 全尺寸+360×640。
 
-## 它怎麼留住你的照片
+工作流：`check_environment.py` → `resolve_config.py` + `preprocess.py` → `build_render_plan.py` + `build_production_plan.py` + `render_scope.py --mode sample` → 風格門 → 範例 → `review_gate.py approve` + `render_scope.py --mode batch` → 批次合成 → QA → revision → `package_verified.py`
 
-不是靠一句 prompt。它把五件事拆開管：
+更新檢查（24h節流，非阻塞）：`python3 bin/check_updates.py` / `python3 bin/check_environment.py --check-updates`
 
-- 畫什麼，聽你的原片
-- 怎麼畫，參考你給的水彩感覺，但不抄它的內容
-- 哪些要分開，圖是圖，紙是紙，字是字
-- 放哪兒，9:16 的紙，字在哪裡，圖佔多大，都有定數
-- 怎麼像一套，三張的亮度、顆粒、留白是一樣的
+驗證：`python3 bin/validate_skill.py --json`
 
-鎖住的是輪廓和比例，鬆開的是筆觸。杯口那一點點化開，只在邊上，顏色也從你照片裡取，不自己發明。
+</details>
 
----
+## 參考
 
-## 以後想做成什麼樣
+- 行為和邊界：`SKILL.md`、`references/configuration.md`、`references/review-gate.md`、`references/quality-checks.md`
+- 回歸和邊界用例：`tests/`（34個門禁/回歸）、`references/test-cases.md`、`bin/validate_skill.py`
+- 儲存和封存：`work/resolved-config.json`（SHA256）、`work/manifest.json`（EXIF排序）、`work/style_choice.json`、`work/composition-manifest.json`、`work/verify-report.json`
+- 未使用需額外授權的字型或圖片，風格包為 Smithsonian 公開域 `assets/style-packs/`，範例 webp <100KB，原片 12px 模糊保護隱私，終版無 EXIF/GPS/XMP，不含受版權保護原文
 
-- 風景照的範本（現在這套是杯子在上的，風景在下的還在補）
-- 更輕的安裝，不用 pip 一串
-- 更直觀的改法，不用記那幾個英文動詞
+## License
+
+MIT License — Copyright (c) 2026 locoda。程式碼與文件 MIT，風格包遵循各自 Smithsonian 公開域條款，範例同倉庫授權，原片已模糊處理。
 
 ---
-
----
-
 Made by [1mether](https://1mether.me).
 
 *留住那張照片，只換一種筆觸去記。*

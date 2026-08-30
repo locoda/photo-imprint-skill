@@ -35,6 +35,7 @@ def main() -> int:
     parser.add_argument("--font", type=Path, help="Explicit font file for deterministic typography")
     parser.add_argument("--skill-root", type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument("--json", action="store_true")
+    parser.add_argument("--check-updates", action="store_true", help="also run 24h throttled update checker (non-blocking, <2s cached)")
     args = parser.parse_args()
     checks: list[dict[str, Any]] = []
     errors: list[str] = []
@@ -118,7 +119,30 @@ def main() -> int:
                         ok, detail = False, f"unreadable image {image_path}: {exc}"
                 record(f"style-reference-{identity}", ok, detail)
 
+    # optional update check (non-blocking, vercel-labs + gh skill pattern)
+    update_info = None
+    if args.__dict__.get("check_updates"):
+        try:
+            import subprocess as _sp
+            import sys as _sys_check
+            checker = args.skill_root / "bin" / "check_updates.py"
+            if checker.exists():
+                proc = _sp.run([_sys_check.executable, str(checker), "--json"], capture_output=True, text=True, timeout=12)
+                if proc.returncode == 0 and proc.stdout.strip():
+                    import json as _json
+                    update_info = _json.loads(proc.stdout.strip())
+                    # log event update_check_started handled by checker
+                    if isinstance(update_info, dict) and update_info.get("update_available"):
+                        record("update-available", True, f"{update_info.get('repo')} {update_info.get('remote_sha')} newer than {update_info.get('local_sha')} — run gh skill update photo_imprint")
+                    else:
+                        record("update-available", True, f"up to date {update_info.get('local_sha') if isinstance(update_info, dict) else 'ok'}")
+        except Exception as _e:
+            # non-blocking: GitHub unreachable → log warning, return no update
+            record("update-available", True, f"update check skipped: {_e}")
+
     report = {"ok": not errors, "checks": checks, "errors": errors}
+    if update_info is not None:
+        report["update"] = update_info
     if args.json:
         print(json.dumps(report, indent=2, ensure_ascii=False))
     else:

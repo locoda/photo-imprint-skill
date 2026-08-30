@@ -1,148 +1,83 @@
 # Photo Imprint (印痕)
 
-> 留住那张照片，只换一种笔触去记。Keep the photo, remember it in a different stroke.
+> 留住那张照片，只换一种笔触去记。
 
-[English](README.md) | [中文](README.zh-CN.md)
+[English](README.md) | [繁體中文](README.zh-TW.md)
 
-
-留住那张照片是谁，只把笔触换成手绘。真实旅行照 → 一套风格统一的手帐轮播，发小红书 / IG 用。
+你从日本回来，手机里一堆杯子、机舱、六本木街头的照片，想发小红书 / IG 成一套手帐轮播。直接丢给模型，好看但小杯变大杯，街景还给你编个东京塔，你的那张不见了。
 
 `locoda/photo-imprint-skill` · 英文 skill，中文名印痕
 
-## 能做什么
+```
+请帮我安装这个 skill：https://github.com/locoda/photo-imprint-skill
+```
 
-直接用 prompt 渲，好看但会忘掉你的照片。印痕把轮廓、比例、盖子、logo 位置锁住，只在笔触上抽象。
+![license MIT](https://img.shields.io/badge/license-MIT-green) ![version 1.5.0](https://img.shields.io/badge/version-1.5.0-blue) ![tests 34 gates](https://img.shields.io/badge/tests-34%20gates-lightgrey)
 
-| Photo Imprint（Template B – drink-minimal-caption-above） | 原片（已模糊处理，保护隐私） |
+| 印痕（下方居中，无字） | 原片已模糊，保护隐私 |
 |---|---|
-| ![印痕 01](assets/samples/01-sjc-small-cup-paper-locked-v11.webp) | ![原片 01 已模糊](assets/samples/source-01.webp) |
-| 同一个杯、同一个盖、同样比例。50% 留白，caption 在 y=300/367，扩散只在贴边 2-3 处，≤10% 宽度 | SJC Airport – 小杯、绿饮、透明盖（原片 12px 模糊） |
-| ![印痕 02](assets/samples/02-in-flight-paper-locked-v11.webp) | ![原片 02 已模糊](assets/samples/source-02.webp) |
-| 杯型锁定，机舱简化成冷色块，不编造天空 | 飞机上端杯（原片已模糊） |
-| ![印痕 03](assets/samples/03-roppongi-paper-locked-v11.webp) | ![原片 03 已模糊](assets/samples/source-03.webp) |
-| 杯型锁定，背景强简化，不编造东京塔 | 六本木街头杯（原片已模糊） |
+| ![印痕01](assets/samples/01-sjc-small-cup-paper-locked-v11.webp) | ![原片01](assets/samples/source-01.webp) |
+| 小杯保持小，盖子锁死，50%纸白，下方居中 | SJC 小杯（12px模糊） |
+| ![印痕02](assets/samples/02-in-flight-paper-locked-v11.webp) | ![原片02](assets/samples/source-02.webp) |
+| 机舱简化成冷色块，不编天空 | 飞机上（已模糊） |
+| ![印痕03](assets/samples/03-roppongi-paper-locked-v11.webp) | ![原片03](assets/samples/source-03.webp) |
+| 背景强简化，不编东京塔 | 六本木街头（已模糊） |
 
-所有样张已本地压缩成 webp <100KB，放在 `assets/samples/`，原片 12px 模糊保护隐私。完整 1152×2048 终版 jpg 399–430KB，无 EXIF。
+样张 webp <100KB 在 `assets/samples/`，终版 1152×2048 jpg ~400KB，无 EXIF。
 
-Template A（travel-scene-caption-below，图在下字在下）同理，给 2-3 张开阔场景照就能补一个例子。
+## 一堆旅行照终于像一本手帐的时候
 
+**你：** 有10张日本的照片，想做成一套水彩手帐轮播发出去，但原片太杂，不想露脸，也不想让模型瞎编东京塔。试过一个 prompt 渲所有，小杯第2张就变大杯了。
 
-## 风格任选 — 同一杯，换笔触
+**印痕：** 把轮廓、比例、盖子、logo 位置全部锁住。甩5张真实风格小图给你选，选一种后只渲第1页，把 `production-plan.md` + 6字段 style contract + 样张一起给你看，等你原话批准才批量 2..N。
 
-风格只改怎么画，不改画什么。选一种，全程锁死。同一个星巴克杯，三种 Artvee 笔触：
+**现在你可以：** 用第1张判断整套，小杯保持小，4张全是暖纸 #FAF6F0、55%顶留白、下方居中，没有编造的地点/日期，拿到的 ZIP 已双维 QA 过。
 
-| `sumi-e-ink` 芝田浙信 1847 | `hiroshige-bokashi` 广重 1833 去雨版 | `seurat-conte` 修拉 1882 |
-|---|---|---|
-| ![sumi-e 杯](assets/samples/style-sumi-e-cup.webp) | ![广重 bokashi 杯](assets/samples/style-hiroshige-bokashi-cup.webp) | ![修拉 conte 杯](assets/samples/style-seurat-conte-cup.webp) |
-| 疏朗墨线、淡墨阴影、大留白 | 平涂 + bokashi 渐变，无斜雨线，前景木版化 | 无硬轮廓、绒面 Conté 排线、明暗塑形 |
+## 怎么做到
 
-**已打包、可直接用（5个）：**
+### 锁住该留的，只在笔触上抽象
 
-- `blue-lavender-watercolor` — 透明水洗，冷蓝/薰衣草明度分组，纸白呼吸（Smithsonian / Allen Tucker）—— 见上 3 张样张
-- `highway-485-lithograph` — 稀疏断续轮廓，纸白留白，克制重色点缀（Smithsonian / Allen Tucker）
-- `sumi-e-ink` — 芝田浙信《茶壶与杯子》1847：疏朗墨线、淡墨阴影、大留白
-- `hiroshige-bokashi` — 歌川广重《庄野白雨》1833 去雨版：平涂 + bokashi 渐变，无斜雨线，前景木版化
-- `seurat-conte` — 修拉《修拉母亲》1882–83：无硬轮廓，绒面 Conté 排线，明暗塑形
+原片是权威。Template A/B 现在都走下方居中：主体 y=0.72 居中，1152×2048，暖纸，50%空白保底。shape-lock 锁杯/瓶轮廓、高度、盖子、logo，抽象只在笔触和贴边2-3处 ≤10%宽度溶色，颜色从主图取，不自己发明。不带手/布/相框/三联画。
 
-**仅文本规则（待补参考图）：** `botanical-watercolor`、`paper-collage`、`watercolor-journal` —— 可用，会提示待补。
+### 单选风格，冻住合同，不混搭
 
-在 `profiles/styles/<id>.json` 里切风格。一套轮播只用一种笔触，EXIF 顺序和 caption 锁死，不编 logo/文字，不带手/布。
+已打包5个：`watercolor-journal`（默认，下方居中）、`blue-lavender-watercolor`、`highway-485-lithograph`、`sumi-e-ink`（芝田浙信1847 疏朗墨线）、`hiroshige-bokashi`（广重1833去雨 平涂+bokashi）、`seurat-conte`（修拉1882 无硬轮廓 Conté排线）。选一种写进 `work/style_choice.json`，冻进 `work/sample_style_contract.json`，批量时 hash-lock。要求混搭会拒掉。
 
+### 先 plan+样张，再批量，你说了算
 
-## 怎么用
+不是 prompt 合集，是带门禁的生产流：EXIF 排序 → 每页 `production_brief`（保留/简化/省略）→ `production-plan.md` → 只渲第1页 → 讨论 → 明确批准 → 批量 2..N 用冻结合同 → 洗版 → 确定性合成 → 双维 QA → 已验证 ZIP。你跟 AI 说人话就行：
 
-```bash
-npx skills add locoda/photo-imprint-skill
-# 或
-git clone https://github.com/locoda/photo-imprint-skill.git
-pip install -r requirements.txt
-python3 bin/check_environment.py
-```
+> 我有10张日本照片在 /path/to/photos，帮我做成水彩手帐，小杯保持小，下方居中，上面55%留白，不要字。
 
-3 步：
+AI 按 EXIF 排序，缺 EXIF 会问是否授权 draft，甩5张风格，你说“你定”就用默认，渲样张，等你说“批准第1张，继续”。改图说“第2张背景太满，简化一下”只重渲第2张。私人参考图只存本地，除非你说“可以上传到 X”。
 
-```bash
-# 1. EXIF 排序 + manifest
-python3 bin/preprocess.py --input /path/to/photos --output work/manifest.json --config work/resolved-config.json
+<details>
+<summary>给 AI 看的实现细节（人不用看）</summary>
 
-# 2. Plan + 只渲第1页
-python3 bin/build_production_plan.py --render-plan work/render-plan.json --output work/production-plan.md
-# 渲第1页，和 plan 一起讨论
+6层：Config → Plan → Gate → Render → QA → Package。Invariants：EXIF不可变、样张仅第1张、样张不作参考、每张 plate 有 receipt、无 EXIF/GPS/XMP、不编造。
 
-# 3. 明确批准后 → batch → QA → ZIP
-python3 bin/package_verified.py package --input work/final --output dist/carousel.zip
-```
+默认值：9:16 1152×2048、纸 #FAF6F0 50%留白、默认 watercolor-journal、EXIF升序、QA 全尺寸+360×640。
 
-`workflow.py status` / `next` 只读不写，告诉你下一步。
+工作流：`check_environment.py` → `resolve_config.py` + `preprocess.py` → `build_render_plan.py` + `build_production_plan.py` + `render_scope.py --mode sample` → 风格门 → 样张 → `review_gate.py approve` + `render_scope.py --mode batch` → 批量合成 → QA → revision → `package_verified.py`
 
-## 原理是怎么做的
+更新检查（24h节流，非阻塞）：`python3 bin/check_updates.py` / `python3 bin/check_environment.py --check-updates`，读 SKILL.md version + source.repository，缓存 `~/.cache/photo-imprint-skill/update-check.json`
 
-不是 prompt 合集，是带门禁的生产流。笔触换了，照片还在，靠 5 个维度拆开独立控制：
+验证：`python3 -m unittest discover -s tests -v` / `python3 bin/validate_skill.py --json`
 
-1. **Theme** – 画什么（原片是权威）
-2. **Style** – 怎么画（水洗、边缘、明度分组来自参考图，不带它的主体）
-3. **Layers** – 什么必须分层（plate / 纸 / 文字）
-4. **Composition** – 放哪（确定性合成，纸色 `rgb(247,244,235)`，默认可调）
-5. **Unification** – 怎么统一（同亮度、同颗粒、同 caption）
+</details>
 
-流程：
+## 参考
 
-```
-photos → EXIF 排序 → 每页 production_brief（保留/简化/省略）→ production-plan.md
-      → 只渲第1页 → 冻结 sample style contract
-      → 讨论 plan+sample → 明确批准（原话）
-      → batch 2..N 用冻结 contract → 洗版（profile-driven）
-      → 确定性合成 → 双层 QA → 已验证 ZIP（无 EXIF/GPS/XMP）
-```
+- 行为和边界：`SKILL.md`、`references/configuration.md`、`references/review-gate.md`、`references/quality-checks.md`
+- 回归和边界用例：`tests/`（34个门禁/回归）、`references/test-cases.md`、`bin/validate_skill.py`
+- 存储和归档：`work/resolved-config.json`（SHA256）、`work/manifest.json`（EXIF排序）、`work/style_choice.json`、`work/composition-manifest.json`、`work/verify-report.json`
+- 未使用需额外授权的字体或图片，风格包为 Smithsonian 公开域 `assets/style-packs/`，样张 webp <100KB，原片 12px 模糊保护隐私，终版无 EXIF/GPS/XMP，不含受版权保护原文
 
-为什么能留住那张照片：Template B 锁定杯/瓶轮廓、比例、盖子、logo 位置，抽象只在笔触和边缘，扩散克制 2-3 处贴边溶色，颜色取自主图。
+## License
 
-批准后改动用四种操作（`remove` / `retain_but_simplify` / `add_as_secondary` / `preserve_unchanged`），避免“路有点怪”被误读成“把路全删了”。
-
-## 两套布局模板
-
-**Template A `travel-scene-caption-below`** – 图偏下，caption 在图下方，约 50% 留白。
-
-**Template B `drink-minimal-caption-above`** – caption 在上方，主体居中偏下，小杯保持小，同留白，扩散克制。当前三张就用这个。
-
-完整字段见 `production-plan.md`。
-
-## 和直接 prompt 的区别
-
-| 直接 prompt | Photo Imprint |
-|---|---|
-| 一套 prompt 渲所有页 | 每页 brief + 冻结 style contract |
-| 编造背景/地标 | forbidden-inventions 列表挡住 |
-| 小杯变大杯 | shape-lock，小杯保持小 |
-| 三页三种纸 | 统一暖白，同亮度同颗粒 |
-| 无复核 | 页级合规 + 组级统一 |
-
-
-
-## 目录
-
-```
-SKILL.md                  # 工作流（英文）
-presets/travel-food-journal.json
-profiles/{themes,styles,layers,compositions,unification}/
-assets/samples/           # 压缩后的前后对比（webp <100KB）
-assets/style-packs/       # 自带 Smithsonian 公开域风格包
-tests/                    # 34 个门禁/回归测试
-```
-
-私有参考图只存本地，未经明确授权不外发。
-
-## 验证
-
-```bash
-python3 -m unittest discover -s tests -v
-python3 bin/validate_skill.py --json
-```
-
+MIT License — Copyright (c) 2026 locoda。代码与文档 MIT，风格包遵循各自 Smithsonian 公开域条款，样张同仓库许可，原片已模糊处理。
 
 ---
-
 Made by [1mether](https://1mether.me).
 
 *留住那张照片，只换一种笔触去记。*
-

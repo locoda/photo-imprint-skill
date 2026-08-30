@@ -12,7 +12,7 @@
 請幫我安裝這個 skill：https://github.com/locoda/photo-imprint-skill
 ```
 
-![license MIT](https://img.shields.io/badge/license-MIT-green) ![version 1.5.0](https://img.shields.io/badge/version-1.5.0-blue) ![tests 34 gates](https://img.shields.io/badge/tests-34%20gates-lightgrey)
+![license MIT](https://img.shields.io/badge/license-MIT-green) ![version 1.6.0](https://img.shields.io/badge/version-1.6.0-blue) ![tests 34 gates](https://img.shields.io/badge/tests-34%20gates-lightgrey)
 
 | 印痕（下方置中，上方 caption 範例） | 原片已模糊，保護隱私 |
 |---|---|
@@ -29,9 +29,9 @@
 
 **你：** 有10張日本的照片，想做成一套水彩手帳輪播，但原片太雜，不想露臉，也不想讓模型亂加地標。試過一個 prompt 套全部，第2張小杯就變大杯。
 
-**印痕：** 把輪廓、比例、蓋子、logo 位置全部鎖住。丟5張真實風格縮圖給你選，選一種後只算第1頁，把 `production-plan.md` + 6欄位 style contract + 範例一起給你看，等你原話批准才批次 2..N。
+**印痕：** 把輪廓、比例、蓋子、logo 位置全部鎖住。丟8張真實風格縮圖給你選，選一種後只算第1頁，把 `production-plan.md` + 6欄位 style contract + 範例一起給你看，等你原話批准才批次 2..N。
 
-**現在你可以：** 用第1張判斷整套，小杯保持小，4張全是暖紙 #FAF6F0、55%頂部留白、下方置中，沒有編造的地點/日期，拿到的 ZIP 已雙維 QA。
+**現在你可以：** 用第1張判斷整套，小杯保持小，4張全是暖紙 #F1EBDD、55%頂部留白、下方置中，沒有編造的地點/日期，拿到的 ZIP 已雙維 QA。
 
 ## 怎麼跟 AI 說
 
@@ -67,7 +67,7 @@
 
 ### 單選風格，凍住合約，不混搭
 
-已打包5個：`watercolor-journal`（預設，下方置中）、`blue-lavender-watercolor`、`highway-485-lithograph`、`sumi-e-ink`（芝田浙信1847 疏朗墨線）、`hiroshige-bokashi`（廣重1833去雨 平塗+bokashi）、`seurat-conte`（秀拉1882 無硬輪廓 Conté排線）。選一種寫進 `work/style_choice.json`，凍進 `work/sample_style_contract.json`，批次時 hash-lock。要求混搭會拒絕。
+已打包8個：`watercolor-journal`（預設，下方置中）、`blue-lavender-watercolor`、`highway-485-lithograph`、`sumi-e-ink`（芝田浙信1847 疏朗墨線）、`hiroshige-bokashi`（廣重1833去雨 平塗+bokashi）、`seurat-conte`（秀拉1882 無硬輪廓 Conté排線）。選一種寫進 `work/style_choice.json`，凍進 `work/sample_style_contract.json`，批次時 hash-lock。要求混搭會拒絕。
 
 ### 先 plan+範例，再批次，你說了算
 
@@ -75,18 +75,18 @@
 
 > 我有10張日本照片在 /path/to/photos，幫我做成水彩手帳，小杯保持小，下方置中，上面55%留白，不要字。
 
-AI 按 EXIF 排序，缺 EXIF 會問是否授權 draft，丟5張風格，你說「你定」就用預設，算範例，等你說「批准第1張，繼續」。改圖說「第2張背景太滿」只重算第2張。私人參考圖只存本地，除非你說「可以上傳到 X」。
+AI 按 EXIF 排序，缺 EXIF 會問是否授權 draft，丟8張風格，你說「你定」就用預設，算範例，等你說「批准第1張，繼續」。改圖說「第2張背景太滿」只重算第2張。私人參考圖只存本地，除非你說「可以上傳到 X」。
 
 <details>
 <summary>給 AI 的實作（人不用看）</summary>
 
 6層：Config → Plan → Gate → Render → QA → Package。Invariants：EXIF不可變、範例僅第1張、範例不作參考、每張 plate 有 receipt、無 EXIF/GPS/XMP、不編造。
 
-預設 9:16 1152×2048、紙 #FAF6F0 50%留白、預設 watercolor-journal、EXIF升冪、QA 全尺寸+360×640。
+預設 9:16 1152×2048、紙 #F1EBDD 50%留白、預設 watercolor-journal、EXIF升冪、QA 全尺寸+360×640。
 
-工作流：`check_environment.py` → `resolve_config.py` + `preprocess.py` → `build_render_plan.py` + `build_production_plan.py` + `render_scope.py --mode sample` → 風格門 → 範例 → `review_gate.py approve` + `render_scope.py --mode batch` → 批次合成 → QA → revision → `package_verified.py`
+工作流：`check_environment.py` → `resolve_config.py` + `preprocess.py` → `build_render_plan.py` + `build_production_plan.py` + `build_render_plan.py + build_production_plan.py (sample scope)` → 風格門 → 範例 → `review_gate.py approve` + `compose.py batch` → 批次合成 → QA → revision → `package_verified.py`
 
-更新檢查（24h節流，非阻塞）：`python3 bin/check_updates.py` / `python3 bin/check_environment.py --check-updates`
+更新檢查（7d節流，非阻塞）：`python3 bin/check_updates.py` / `python3 bin/check_environment.py --check-updates`
 
 驗證：`python3 bin/validate_skill.py --json`
 

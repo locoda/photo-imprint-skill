@@ -12,7 +12,7 @@
 请帮我安装这个 skill：https://github.com/locoda/photo-imprint-skill
 ```
 
-![license MIT](https://img.shields.io/badge/license-MIT-green) ![version 1.5.0](https://img.shields.io/badge/version-1.5.0-blue) ![tests 34 gates](https://img.shields.io/badge/tests-34%20gates-lightgrey)
+![license MIT](https://img.shields.io/badge/license-MIT-green) ![version 1.6.0](https://img.shields.io/badge/version-1.6.0-blue) ![tests 34 gates](https://img.shields.io/badge/tests-34%20gates-lightgrey)
 
 | 印痕（下方居中，上方 caption 示例） | 原片已模糊，保护隐私 |
 |---|---|
@@ -29,9 +29,9 @@
 
 **你：** 有10张日本的照片，想做成一套水彩手帐轮播发出去，但原片太杂，不想露脸，也不想让模型瞎编东京塔。试过一个 prompt 渲所有，小杯第2张就变大杯了。
 
-**印痕：** 把轮廓、比例、盖子、logo 位置全部锁住。甩5张真实风格小图给你选，选一种后只渲第1页，把 `production-plan.md` + 6字段 style contract + 样张一起给你看，等你原话批准才批量 2..N。
+**印痕：** 把轮廓、比例、盖子、logo 位置全部锁住。甩8张真实风格小图给你选，选一种后只渲第1页，把 `production-plan.md` + 6字段 style contract + 样张一起给你看，等你原话批准才批量 2..N。
 
-**现在你可以：** 用第1张判断整套，小杯保持小，4张全是暖纸 #FAF6F0、55%顶留白、下方居中，没有编造的地点/日期，拿到的 ZIP 已双维 QA 过。
+**现在你可以：** 用第1张判断整套，小杯保持小，4张全是暖纸 #F1EBDD、55%顶留白、下方居中，没有编造的地点/日期，拿到的 ZIP 已双维 QA 过。
 
 ## 怎么跟 AI 说
 
@@ -67,7 +67,7 @@
 
 ### 单选风格，冻住合同，不混搭
 
-已打包5个：`watercolor-journal`（默认，下方居中）、`blue-lavender-watercolor`、`highway-485-lithograph`、`sumi-e-ink`（芝田浙信1847 疏朗墨线）、`hiroshige-bokashi`（广重1833去雨 平涂+bokashi）、`seurat-conte`（修拉1882 无硬轮廓 Conté排线）。选一种写进 `work/style_choice.json`，冻进 `work/sample_style_contract.json`，批量时 hash-lock。要求混搭会拒掉。
+已打包8个：`watercolor-journal`（默认，下方居中）、`blue-lavender-watercolor`、`highway-485-lithograph`、`sumi-e-ink`（芝田浙信1847 疏朗墨线）、`hiroshige-bokashi`（广重1833去雨 平涂+bokashi）、`seurat-conte`（修拉1882 无硬轮廓 Conté排线）。选一种写进 `work/style_choice.json`，冻进 `work/sample_style_contract.json`，批量时 hash-lock。要求混搭会拒掉。
 
 ### 先 plan+样张，再批量，你说了算
 
@@ -75,18 +75,18 @@
 
 > 我有10张日本照片在 /path/to/photos，帮我做成水彩手帐，小杯保持小，下方居中，上面55%留白，不要字。
 
-AI 按 EXIF 排序，缺 EXIF 会问是否授权 draft，甩5张风格，你说“你定”就用默认，渲样张，等你说“批准第1张，继续”。改图说“第2张背景太满，简化一下”只重渲第2张。私人参考图只存本地，除非你说“可以上传到 X”。
+AI 按 EXIF 排序，缺 EXIF 会问是否授权 draft，甩8张风格，你说“你定”就用默认，渲样张，等你说“批准第1张，继续”。改图说“第2张背景太满，简化一下”只重渲第2张。私人参考图只存本地，除非你说“可以上传到 X”。
 
 <details>
 <summary>给 AI 看的实现细节（人不用看）</summary>
 
 6层：Config → Plan → Gate → Render → QA → Package。Invariants：EXIF不可变、样张仅第1张、样张不作参考、每张 plate 有 receipt、无 EXIF/GPS/XMP、不编造。
 
-默认值：9:16 1152×2048、纸 #FAF6F0 50%留白、默认 watercolor-journal、EXIF升序、QA 全尺寸+360×640。
+默认值：9:16 1152×2048、纸 #F1EBDD 50%留白、默认 watercolor-journal、EXIF升序、QA 全尺寸+360×640。
 
-工作流：`check_environment.py` → `resolve_config.py` + `preprocess.py` → `build_render_plan.py` + `build_production_plan.py` + `render_scope.py --mode sample` → 风格门 → 样张 → `review_gate.py approve` + `render_scope.py --mode batch` → 批量合成 → QA → revision → `package_verified.py`
+工作流：`check_environment.py` → `resolve_config.py` + `preprocess.py` → `build_render_plan.py` + `build_production_plan.py` + `build_render_plan.py + build_production_plan.py (sample scope)` → 风格门 → 样张 → `review_gate.py approve` + `compose.py batch` → 批量合成 → QA → revision → `package_verified.py`
 
-更新检查（24h节流，非阻塞）：`python3 bin/check_updates.py` / `python3 bin/check_environment.py --check-updates`，读 SKILL.md version + source.repository，缓存 `~/.cache/photo-imprint-skill/update-check.json`
+更新检查（7d节流，非阻塞）：`python3 bin/check_updates.py` / `python3 bin/check_environment.py --check-updates`，读 SKILL.md version + source.repository，缓存 `~/.cache/photo-imprint-skill/update-check.json`
 
 验证：`python3 -m unittest discover -s tests -v` / `python3 bin/validate_skill.py --json`
 

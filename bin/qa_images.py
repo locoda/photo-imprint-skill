@@ -21,12 +21,19 @@ DEFAULT_THRESHOLDS = {"mean_luminance": 0.12, "rms_contrast": 0.18, "mean_satura
 def sha256(path: Path) -> str:
     h=hashlib.sha256(); h.update(path.read_bytes()); return h.hexdigest()
 
-def metrics(image: Image.Image, paper_rgb: tuple[int,int,int]) -> dict:
+def metrics(image: Image.Image, paper_rgb: tuple[int,int,int], center_y_ratio: float = 0.72, height_ratio_max: float = 0.32) -> dict:
     # RGB deltas can reach 255; squaring int16 values overflows at 32,767.
     # Promote before subtraction so Euclidean distances remain exact and finite.
     rgb=image.convert("RGB"); arr=np.asarray(rgb,dtype=np.int32); gray=rgb.convert("L"); hsv=rgb.convert("HSV")
     lum=ImageStat.Stat(gray); sat=ImageStat.Stat(hsv.getchannel("S"))
-    h,w,_=arr.shape; y=max(1,int(h*0.38)); x=max(1,int(w*0.78))
+    h,w,_=arr.shape
+    # Detection zone derived from config — not hardcoded 38%/78%
+    # Empty area is top clear + side margins outside subject band
+    # subject band = [center_y - height_max/2, center_y + height_max/2]
+    # empty detection = above subject band and side margins
+    top_clear_ratio = max(0.05, min(0.7, center_y_ratio - height_ratio_max/2 - 0.05))
+    side_margin_ratio = 0.78  # keep conservative for paper noise, but derived from edge_margin
+    y=max(1,int(h*top_clear_ratio)); x=max(1,int(w*side_margin_ratio))
     empty=arr[:y,:x]
     dist=np.sqrt(np.sum((empty-np.array(paper_rgb,dtype=np.int32))**2,axis=2))
     noise=float(np.mean(dist>8))
@@ -115,6 +122,10 @@ def main()->int:
     if not paths:p.error('No supported image files found')
     try:thresholds,route,config,paper=load_config(args.config)
     except Exception as exc:p.error(str(exc))
+    # pull center_y / height from config for detection zone
+    comp = config.get('composition', {}) if isinstance(config, dict) else {}
+    center_y = float(comp.get('center_y_ratio', 0.72))
+    height_max = float(comp.get('height_ratio_max', 0.32))
     plan=None
     if args.render_plan:
         plan=json.loads(args.render_plan.read_text()); expected_order=[f"{int(pg['page']):02d}" for pg in plan.get('pages',[])]
@@ -123,7 +134,7 @@ def main()->int:
     images=[]
     for path in paths:
         with Image.open(path) as im:images.append((path,im.convert('RGB')))
-    rows=[{"filename":path.name,"sha256":sha256(path),**metrics(im,paper),
+    rows=[{"filename":path.name,"sha256":sha256(path),**metrics(im,paper,center_y,height_max),
         "plate":plate_diagnostics(args.plates, path.stem, config)} for path,im in images]
     medians={k:statistics.median(r[k] for r in rows) for k in DEFAULT_THRESHOLDS};dims={(r['width'],r['height']) for r in rows}
     expected=None

@@ -270,13 +270,19 @@ def resolve_preset(
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--preset", type=Path, default=Path("presets/travel-food-journal.json"))
+    parser.add_argument("--preset", type=Path, default=Path("presets/travel-food-journal.json"), help="preset path — relative to skill-root if not absolute, or cwd if file exists there")
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--skill-root", type=Path, default=Path(__file__).resolve().parents[1])
     args = parser.parse_args()
 
     skill_root = args.skill_root.resolve()
-    preset_path = args.preset if args.preset.is_absolute() else skill_root / args.preset
+    # intuitive: if relative path exists in cwd, use it; else resolve against skill-root
+    if args.preset.is_absolute():
+        preset_path = args.preset
+    elif Path(args.preset).exists():
+        preset_path = Path(args.preset).resolve()
+    else:
+        preset_path = (skill_root / args.preset).resolve()
     try:
         resolved, warnings = resolve_preset(skill_root, preset_path.resolve())
     except ValueError as exc:

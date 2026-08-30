@@ -30,7 +30,7 @@ class ReusablePolicyTests(unittest.TestCase):
     def test_frontmatter_is_versioned_and_has_explicit_trigger_language(self):
         skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
         frontmatter = skill.split("---", 2)[1]
-        self.assertIn('version: "1.2.0"', frontmatter)
+        self.assertIn('version: "1.5.0"', frontmatter)
         self.assertIn("Use when", frontmatter)
         self.assertIn("照片转手绘轮播", frontmatter)
 

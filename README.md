@@ -14,7 +14,7 @@ Please help me install this skill: https://github.com/locoda/photo-imprint-skill
 
 ![license MIT](https://img.shields.io/badge/license-MIT-green) ![version 1.5.0](https://img.shields.io/badge/version-1.5.0-blue) ![tests 34 gates](https://img.shields.io/badge/tests-34%20gates-lightgrey)
 
-| Photo Imprint (bottom-center, no caption) | Source (blurred 12px for privacy) |
+| Photo Imprint (bottom-center, caption above — sample) | Source (blurred 12px for privacy) |
 |---|---|
 | ![imprint 01](assets/samples/01-sjc-small-cup-paper-locked-v11.webp) | ![source 01](assets/samples/source-01.webp) |
 | Same small cup, lid locked, 50% paper-white, bottom-center | SJC small cup |
@@ -32,6 +32,33 @@ All samples webp <100KB in `assets/samples/`. Full finals 1152×2048 jpg ~400KB,
 **Photo Imprint:** Locks silhouette, proportions, cap/lid, logo position for every page. It shows 5 real style thumbnails, you pick one, it builds a production plan and renders only page 1. You see the plan + sample together, with 6-field style contract, and approve with your exact words before any batch.
 
 **Now you can:** Judge the whole set from one page, keep the small cup small across all pages, and get a verified ZIP where all pages share the same warm paper #FAF6F0, 55% top whitespace, bottom-center placement, and no invented facts.
+
+## How to talk to your AI
+
+You don't run scripts. Your AI does.
+
+**Install once:**
+```
+Please help me install this skill: https://github.com/locoda/photo-imprint-skill
+```
+(You already have it above — this block is for copy-paste.)
+
+**Start a set:**
+> I have 10 photos from Japan in /path/to/photos, make them watercolor journal, keep cups small, bottom-center, 55% top whitespace, no caption. Preserve cup height and logo position.
+
+**Pick a style:**
+> Use sumi-e-ink / 你定 / use default watercolor
+
+**Approve:**
+> Approve page 1, continue / 批准第1张，继续
+
+**Fix one page:**
+> Page 2 background too busy, simplify / 第2张背景太满，简化一下
+
+**Change style (goes back to style gate, expected):**
+> Change to hiroshige-bokashi / 换成广重去雨版
+
+Tips: Small cup stays small is locked by default. Captions are EXIF-confirmed only — say "no caption" if you don't want them. Private references stay local unless you say "you may upload to X".
 
 ## How it works
 

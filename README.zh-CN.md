@@ -14,7 +14,7 @@
 
 ![license MIT](https://img.shields.io/badge/license-MIT-green) ![version 1.5.0](https://img.shields.io/badge/version-1.5.0-blue) ![tests 34 gates](https://img.shields.io/badge/tests-34%20gates-lightgrey)
 
-| 印痕（下方居中，无字） | 原片已模糊，保护隐私 |
+| 印痕（下方居中，上方 caption 示例） | 原片已模糊，保护隐私 |
 |---|---|
 | ![印痕01](assets/samples/01-sjc-small-cup-paper-locked-v11.webp) | ![原片01](assets/samples/source-01.webp) |
 | 小杯保持小，盖子锁死，50%纸白，下方居中 | SJC 小杯（12px模糊） |
@@ -32,6 +32,32 @@
 **印痕：** 把轮廓、比例、盖子、logo 位置全部锁住。甩5张真实风格小图给你选，选一种后只渲第1页，把 `production-plan.md` + 6字段 style contract + 样张一起给你看，等你原话批准才批量 2..N。
 
 **现在你可以：** 用第1张判断整套，小杯保持小，4张全是暖纸 #FAF6F0、55%顶留白、下方居中，没有编造的地点/日期，拿到的 ZIP 已双维 QA 过。
+
+## 怎么跟 AI 说
+
+你不用跑脚本，AI 跑。
+
+**装一次：**
+```
+请帮我安装这个 skill：https://github.com/locoda/photo-imprint-skill
+```
+
+**开一套：**
+> 我有10张日本照片在 /path/to/photos，帮我做成水彩手帐，小杯保持小，下方居中，上面55%留白，不要字，保留杯高和logo位置。
+
+**选风格：**
+> 用 sumi-e-ink / 你定 / 用默认水彩
+
+**批准：**
+> 批准第1张，继续
+
+**改一页：**
+> 第2张背景太满，简化一下
+
+**换风格（会退回风格门，符合预期）：**
+> 换成广重去雨版
+
+小技巧：小杯保持小是默认锁死的，不用反复说。caption 只认 EXIF，不想要就说“不要字”。私人参考图只存本地，除非你说“可以上传到 X”。
 
 ## 怎么做到
 

@@ -3,6 +3,9 @@
 # Explicitly approved, redistributable Smithsonian derivatives are bundled.
 !/assets/style-packs/blue-lavender-watercolor/reference.webp
 !/assets/style-packs/highway-485-lithograph/reference.webp
+!/assets/style-packs/sumi-e-ink/reference.webp
+!/assets/style-packs/hiroshige-bokashi/reference.webp
+!/assets/style-packs/seurat-conte/reference.webp
 
 # Generated project state and deliverables stay out of the skill repository.
 /work/

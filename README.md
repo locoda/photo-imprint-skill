@@ -1,107 +1,148 @@
 # Photo Imprint (印痕)
 
-> Keep the photo, remember it in a different stroke.
+> Keep the photo, remember it in a different stroke. 留住那张照片，只换一种笔触去记。
 
-[简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md)
+[English](README.md) | [中文](README.zh-CN.md)
 
-You came back with a camera roll full of drinks, airplane trays, street corners in Roppongi. You want to turn them into a little journal carousel for Xiaohongshu or IG. If you just prompt a model, it looks pretty, but the cup gets bigger, the street gets fake, and your photo disappears.
 
-Photo Imprint does the opposite: it locks your photo in place and only changes the brush.
+Photo Imprint keeps that photo — silhouette, proportions, cap, logo — and only changes the stroke you remember it with. Real travel photos → a consistent illustrated journal carousel for IG / Xiaohongshu.
 
-`locoda/photo-imprint-skill` · the skill itself is in English, Chinese name is 印痕
+`locoda/photo-imprint-skill` · English skill, Chinese name 印痕
 
-```
-Please help me install this skill: https://github.com/locoda/photo-imprint-skill
-```
+## See what it does
 
----
+Direct prompting makes a pretty picture that forgets your photo. Photo Imprint locks what matters and only abstracts the brushwork.
 
-## When you want a whole trip to feel like one little journal
-
-Say you just got back from Japan. Your phone is full of cups you've had, in-flight moments, that one on a Roppongi street. You want to post them, but the raw photos are messy, you don't want to show your face, and you don't want the model to invent a Tokyo Tower that was never there.
-
-What you want is:
-
-- small cup stays small cup, lid and logo right where they were
-- background cleaned up, just a little paper breathing room, nothing invented
-- three images together that feel like the same book
-
-That's the moment Photo Imprint is for.
-
-### Before / After
-
-| What Photo Imprint draws | Your source (blurred for privacy) |
+| Photo Imprint (Template B – drink-minimal-caption-above) | Source photo (blurred for privacy) |
 |---|---|
-| ![imprint 01](assets/samples/01-sjc-small-cup-paper-locked-v11.webp) | ![source 01](assets/samples/source-01.webp) |
-| Small cup stays small, 50% paper white, caption on top | That green drink at SJC Airport, clear lid |
-| ![imprint 02](assets/samples/02-in-flight-paper-locked-v11.webp) | ![source 02](assets/samples/source-02.webp) |
-| Cabin softened into a faint color block, no invented sky | The one holding a cup on the plane |
-| ![imprint 03](assets/samples/03-roppongi-paper-locked-v11.webp) | ![source 03](assets/samples/source-03.webp) |
-| Background reduced to a few lines, no Tokyo Tower added | That cup on a Roppongi street |
+| ![imprint 01](assets/samples/01-sjc-small-cup-paper-locked-v11.webp) | ![source 01 (blurred)](assets/samples/source-01.webp) |
+| Same cup, same lid, same proportion. 50% paper white, caption `SJC Airport` at y=300 / y=367, diffusion ≤10% width, 2–3 edge bleeds only | SJC Airport – small cup, green drink, clear lid (source blurred 12px) |
+| ![imprint 02](assets/samples/02-in-flight-paper-locked-v11.webp) | ![source 02 (blurred)](assets/samples/source-02.webp) |
+| Cup locked, cabin simplified to cool wash, no invented skyline | In-flight cup in hand (source blurred) |
+| ![imprint 03](assets/samples/03-roppongi-paper-locked-v11.webp) | ![source 03 (blurred)](assets/samples/source-03.webp) |
+| Cup locked, background strongly simplified, no Tokyo Tower invented | Roppongi street cup (source blurred) |
 
-Samples are compressed to webp <100KB in `assets/samples/`. Sources are blurred 12px. Final exports are 1152×2048 jpg ~400KB, no EXIF.
+All samples are locally compressed to webp <100KB (`assets/samples/`). Source photos are blurred 12px for privacy. Full 1152×2048 finals are 399–430KB jpg, no EXIF.
+
+Template A (travel-scene-caption-below) is the same idea — image lower, caption below — for open scenes. Share 2–3 scene photos and I will add a Template A example in the same folder.
+
+
+## Styles — same cup, different stroke
+
+A style changes only how it's drawn, never what's in the photo. Pick one, keep the rest locked. Same Starbucks cup below, three Artvee-derived strokes:
+
+| `sumi-e-ink` — Zeshin 1847 | `hiroshige-bokashi` — Hiroshige 1833 no-rain | `seurat-conte` — Seurat 1882 |
+|---|---|---|
+| ![sumi-e cup](assets/samples/style-sumi-e-cup.webp) | ![hiroshige bokashi cup](assets/samples/style-hiroshige-bokashi-cup.webp) | ![seurat conte cup](assets/samples/style-seurat-conte-cup.webp) |
+| sparse ink lines, light sumi wash, large paper-white | flat color + bokashi gradient, no diagonal rain, woodblock foreground | no hard outline, velvety Conté hatching, chiaroscuro |
+
+**Bundled and approved (5):**
+
+- `blue-lavender-watercolor` — transparent wash, cool blue/lavender value groups, paper-white breathing (Smithsonian / Allen Tucker) — see 3-page sample above
+- `highway-485-lithograph` — sparse broken contour, paper-white negative space, restrained dark accents (Smithsonian / Allen Tucker)
+- `sumi-e-ink` — Shibata Zeshin *Teapot and Cups* (1847): sparse ink lines, light sumi wash, large paper-white
+- `hiroshige-bokashi` — Utagawa Hiroshige *Driving Rain at Shono* (1833) without rain: flat color + bokashi gradient, no diagonal rain lines, foreground woodblock stylization
+- `seurat-conte` — Georges Seurat *Madame Seurat* (1882–83): no hard outline, velvety Conté hatching, chiaroscuro shaping
+
+**Text-rule only (pending reference):** `botanical-watercolor`, `paper-collage`, `watercolor-journal` — usable, but shows a warning until a public-domain reference is added.
+
+Switch styles in `profiles/styles/<id>.json`. One style per carousel, EXIF order and captions stay locked. No logo, no text invention, no hand/cloth.
+
+
+## Install and use
+
+```bash
+npx skills add locoda/photo-imprint-skill
+# or
+git clone https://github.com/locoda/photo-imprint-skill.git
+pip install -r requirements.txt
+python3 bin/check_environment.py
+```
+
+3 steps:
+
+```bash
+# 1. EXIF order + manifest
+python3 bin/preprocess.py --input /path/to/photos --output work/manifest.json --config work/resolved-config.json
+
+# 2. Plan + sample only
+python3 bin/build_production_plan.py --render-plan work/render-plan.json --output work/production-plan.md
+# render page 1, discuss plan+sample together
+
+# 3. After explicit approval → batch → QA → ZIP
+python3 bin/package_verified.py package --input work/final --output dist/carousel.zip
+```
+
+`workflow.py status` / `next` never writes, it only tells you what to do next.
+
+## How it works
+
+Not a prompt collection. A gated workflow that keeps 5 concerns independent — so the stroke changes, the photo stays:
+
+1. **Theme** – what to draw (source photo is authority)
+2. **Style** – how to draw it (wash, edge, value from a reference, never its subject)
+3. **Layers** – what stays separate (plate / paper / typography)
+4. **Composition** – where it goes (deterministic 9:16, 1152×2048, paper `rgb(247,244,235)`)
+5. **Unification** – how the set stays one (same brightness, grain, caption y=300/367)
+
+Principle:
+
+```
+photos → EXIF order → per-page brief (preserve / simplify / omit) → production-plan.md
+      → render page 1 only → hash-lock sample style contract
+      → discuss plan+sample → explicit approval
+      → batch 2..N with frozen contract → clean-plate normalization
+      → deterministic composition → two-level QA → verified ZIP (no EXIF/GPS/XMP)
+```
+
+Shape-lock is why it keeps the photo: Template B locks cup/bottle silhouette, proportions, cap/lid, logo position; abstraction only in brushwork, with 2–3 ultra-light edge bleeds ≤10% width right / ≤8% height bottom, colors sampled from subject itself.
+
+Typed revisions (`remove`, `retain_but_simplify`, `add_as_secondary`, `preserve_unchanged`) keep “the roads feel strange” from becoming “delete every road”.
+
+## 2 layout templates
+
+**Template A `travel-scene-caption-below`** – image lower (center 58–62%, scale 38–45%), caption below, ~50% negative space top/sides.
+
+**Template B `drink-minimal-caption-above`** – caption above at y=300/367, subject centered 60–65% (scale 32–40%, small cup stays small), same 50% paper, restrained diffusion. Current 3-page set uses this.
+
+Full fields: canvas, paper, placement, typography (`NotoSerifDisplay-Regular 48pt / Light 27pt`, `#403C44`), diffusion limits, forbidden elements.
+
+## vs naive prompting
+
+| Naive | Photo Imprint |
+|---|---|
+| One prompt for all | Per-page brief + frozen style contract |
+| Invents background | Forbidden-inventions list enforced |
+| Small cup → big cup | Shape-lock, small stays small |
+| 3 pages 3 papers | Unified warm white, same grain/brightness |
+| No review | Page-level compliance + set-level cohesion |
+
+
+
+## Project layout
+
+```
+SKILL.md                  # workflow (English)
+presets/travel-food-journal.json
+profiles/{themes,styles,layers,compositions,unification}/
+assets/samples/           # before/after (webp <100KB)
+assets/style-packs/       # Smithsonian public-domain packs
+tests/                    # 34 gate/regression checks
+```
+
+Private references stay local and are never sent externally without explicit consent.
+
+## Validation
+
+```bash
+python3 -m unittest discover -s tests -v
+python3 bin/validate_skill.py --json
+```
+
 
 ---
-
-## How to use
-
-Once installed, three steps:
-
-1. Drop your photos in, they get sorted by when you took them
-2. It draws just the first page, you look at the plan together
-3. When you say go, it draws the rest, checks everything, and zips it up
-
-If you say "this part feels off" at any point, it only fixes that part — it doesn't redo the whole set.
-
-The tool tells you what to do next, it doesn't run ahead on its own.
-
----
-
-## How it keeps your photo
-
-Not one prompt. It keeps five things separate:
-
-- what to draw — from your source photo
-- how to draw it — watercolor feel from your reference, but not its content
-- what stays separate — image is image, paper is paper, type is type
-- where it goes — 9:16 paper, where the caption sits, how big the subject is, all fixed
-- how it feels like a set — same brightness, same grain, same white space
-
-What stays locked is the silhouette and proportions. What changes is the stroke. A little diffusion at the edge, color sampled from your photo, never invented.
-
----
-
-## What we want to try next
-
-- A template for open scenery (current set is cup-on-top, scenery-below is still coming)
-- Lighter install, no long pip chain
-- More intuitive edits, without remembering those English verbs
-
----
-
-## License
-
-MIT — see [LICENSE](LICENSE).
-
-## Credits
-
-- Style references: Allen Tucker *Highway 485* and *Watercolor No. 73, Blue and Lavender* — independently selectable, with technique roles and subject-leakage exclusions
-- Workflow and boundaries: `SKILL.md`
-- Samples in `assets/samples/`, all locally compressed
-- No licensed fonts or images that need extra permission
-
----
-
-## Made by
 
 Made by [1mether](https://1mether.me).
 
-## If this helps
-
-If it helped you turn a trip into something you like, consider starring the repo.
-
-If this skill is useful to you, consider starring the repository.
-
----
-
 *Keep the photo, just remember it in a different stroke.*
+

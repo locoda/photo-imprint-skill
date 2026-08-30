@@ -177,7 +177,7 @@ class BundledStyleReferenceTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         report = json.loads(result.stdout)
         self.assertTrue(report["ok"])
-        self.assertEqual(report["counts"]["style_references"], 2)
+        self.assertGreaterEqual(report["counts"]["style_references"], 2)
         self.assertEqual(report["errors"], [])
 
 

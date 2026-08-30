@@ -39,16 +39,23 @@ def numbered_pages(directory: Path) -> set[int]:
 def inspect(project: Path) -> dict[str, Any]:
     full_receipt = project / "full-renderer-receipt.json"
     legacy_receipt = project / "renderer-receipt.json"
+    # Support both project/ and project/work/ layouts — SKILL.md uses work/
+    work = project / "work"
+    def pick(name: str, *alts: Path) -> Path:
+        for p in alts:
+            if p.is_file():
+                return p
+        return alts[0]
     names = {
-        "resolved_config": project / "resolved-config.json",
-        "manifest": project / "manifest.json",
-        "render_plan": project / "render-plan.json",
-        "production_plan": project / "production-plan.md",
-        "approval_state": project / "approval-state.json",
+        "resolved_config": pick("resolved_config", work / "resolved-config.json", project / "resolved-config.json"),
+        "manifest": pick("manifest", work / "manifest.json", project / "manifest.json"),
+        "render_plan": pick("render_plan", work / "render-plan.json", project / "render-plan.json"),
+        "production_plan": pick("production_plan", work / "production-plan.md", project / "production-plan.md"),
+        "approval_state": pick("approval_state", work / "approval-state.json", project / "approval-state.json"),
         "renderer_receipt": full_receipt if full_receipt.is_file() else legacy_receipt,
-        "composition_manifest": project / "final" / "composition-manifest.json",
-        "review_checklist": project / "qa" / "review-checklist.json",
-        "staging_manifest": project / "staging-manifest.json",
+        "composition_manifest": pick("composition_manifest", work / "composition-manifest.json", project / "final" / "composition-manifest.json"),
+        "review_checklist": pick("review_checklist", work / "review-checklist.json", project / "qa" / "review-checklist.json"),
+        "staging_manifest": pick("staging_manifest", work / "staging-manifest.json", project / "staging-manifest.json"),
         "release": project / "dist" / "carousel.zip",
     }
     files = {key: path.is_file() for key, path in names.items()}

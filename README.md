@@ -12,7 +12,7 @@ You shot a week of travel — cups, streets, cabin windows. You want one journal
 Please help me install this skill: https://github.com/locoda/photo-imprint-skill
 ```
 
-![license MIT](https://img.shields.io/badge/license-MIT-green) ![version 1.5.0](https://img.shields.io/badge/version-1.5.0-blue) ![tests 34 gates](https://img.shields.io/badge/tests-34%20gates-lightgrey)
+![license MIT](https://img.shields.io/badge/license-MIT-green) ![version 1.6.0](https://img.shields.io/badge/version-1.6.0-blue) ![tests 34 gates](https://img.shields.io/badge/tests-34%20gates-lightgrey)
 
 | Photo Imprint (bottom-center, caption above — sample) | Source (blurred 12px for privacy) |
 |---|---|
@@ -29,9 +29,9 @@ All samples webp <100KB in `assets/samples/`. Full finals 1152×2048 jpg ~400KB,
 
 **You:** You have 10 photos from Japan — small cups, in-flight trays, Roppongi streets. You want to post a carousel, but originals are messy, you don't want to show faces, and you don't want the model to invent a Tokyo Tower. You tried one prompt for all and the cup changed size on page 2.
 
-**Photo Imprint:** Locks silhouette, proportions, cap/lid, logo position for every page. It shows 5 real style thumbnails, you pick one, it builds a production plan and renders only page 1. You see the plan + sample together, with 6-field style contract, and approve with your exact words before any batch.
+**Photo Imprint:** Locks silhouette, proportions, cap/lid, logo position for every page. It shows 8 real style thumbnails, you pick one, it builds a production plan and renders only page 1. You see the plan + sample together, with 6-field style contract, and approve with your exact words before any batch.
 
-**Now you can:** Judge the whole set from one page, keep the small cup small across all pages, and get a verified ZIP where all pages share the same warm paper #FAF6F0, 55% top whitespace, bottom-center placement, and no invented facts.
+**Now you can:** Judge the whole set from one page, keep the small cup small across all pages, and get a verified ZIP where all pages share the same warm paper #F1EBDD, 55% top whitespace, bottom-center placement, and no invented facts.
 
 ## How to talk to your AI
 
@@ -68,7 +68,7 @@ Source photo is authority. Template B `drink-minimal` and Template A `travel-sce
 
 ### One style, frozen contract, no blending
 
-Five bundled style packs contribute only technique, never subjects: `watercolor-journal` (default), `blue-lavender-watercolor`, `highway-485-lithograph`, `sumi-e-ink` (Zeshin 1847), `hiroshige-bokashi` (Hiroshige 1833 no-rain), `seurat-conte` (Seurat 1882). Single-select only. Choice is recorded in `work/style_choice.json` with `selected`, `user_delegated`, `timestamp`, `alternatives_shown`, frozen into `work/sample_style_contract.json` 6 keys. Batch prompts hash-lock style choice, contract, render-plan locks, and source hashes. Blending is rejected.
+Eight bundled style packs contribute only technique, never subjects: `watercolor-journal` (default), `blue-lavender-watercolor`, `highway-485-lithograph`, `sumi-e-ink` (Zeshin 1847), `hiroshige-bokashi` (Hiroshige 1833 no-rain), `seurat-conte` (Seurat 1882). Single-select only. Choice is recorded in `work/style_choice.json` with `selected`, `user_delegated`, `timestamp`, `alternatives_shown`, frozen into `work/sample_style_contract.json` 6 keys. Batch prompts hash-lock style choice, contract, render-plan locks, and source hashes. Blending is rejected.
 
 ### Plan + sample gate, you stay in control
 
@@ -87,11 +87,11 @@ AI checks EXIF, shows 5 thumbnails, renders sample, waits for "批准第1张，�
 
 Invariants: EXIF order immutable; sample = first EXIF only; sample never becomes reference; every plate has receipt; no EXIF/GPS/XMP in outputs; no invention of location/date/caption.
 
-**Explicit defaults:** Canvas 9:16 1080×1920 (now 1152×2048), paper #FAF6F0 50% blank, Noto Sans Light 30px #3B3832 at 1080px, default `watercolor-journal`, order EXIF asc, QA full + 360×640, renderer none by default.
+**Explicit defaults:** Canvas 9:16 1152×2048, paper #F1EBDD 50% blank, Noto Sans Light 30px #3B3832 at 1080px, default `watercolor-journal`, order EXIF asc, QA full + 360×640, renderer none by default.
 
-**Workflow (AI runs):** `check_environment.py` → `resolve_config.py` + `preprocess.py` → `build_render_plan.py` + `build_production_plan.py` + `render_scope.py --mode sample` → 2.5 style gate → sample → `review_gate.py approve` + `render_scope.py --mode batch` → batch compose → QA → revision scope → `package_verified.py`.
+**Workflow (AI runs):** `check_environment.py` → `resolve_config.py` + `preprocess.py` → `build_render_plan.py` + `build_production_plan.py` → 2.5 style gate → sample → `review_gate.py approve` + `compose.py batch` → batch compose → QA → revision scope → `package_verified.py`.
 
-Update checker (24h throttled, non-blocking): `python3 bin/check_updates.py` / `python3 bin/check_environment.py --check-updates`. Reads `SKILL.md` version + `source.repository`, local SHA from git HEAD or `.skill-lock.json`, remote SHA via `gh api` → GitHub API → `git ls-remote`. Cache `~/.cache/photo-imprint-skill/update-check.json`. Errors never block.
+Update checker (7d throttled, non-blocking): `python3 bin/check_updates.py` / `python3 bin/check_environment.py --check-updates`. Reads `SKILL.md` version + `source.repository`, local SHA from git HEAD or `.skill-lock.json`, remote SHA via `gh api` → GitHub API → `git ls-remote`. Cache `~/.cache/photo-imprint-skill/update-check.json`. Errors never block.
 
 Validation: `python3 -m unittest discover -s tests -v` / `python3 bin/validate_skill.py --json`
 

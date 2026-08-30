@@ -1,6 +1,6 @@
 ---
 name: "photo_imprint"
-version: "1.5.0"
+version: "1.6.0"
 description: "Photo Imprint (印痕) — 留住那张照片，只换一种笔触去记。Use when turning photos into a consistent illustrated social-media carousel (including 照片转手绘轮播): keep silhouette/proportions/anchors, redraw in watercolor. EXIF ordering, source-specific briefs, plan+sample gate, clean-plate normalization, deterministic composition, typed revisions, two-level QA, verified packaging."
 source:
   repository: "locoda/photo-imprint-skill"
@@ -11,7 +11,20 @@ source:
 # Photo Imprint (印痕)
 
 ## Purpose
-Keep the photo, remember it in a different stroke. 留住那张照片，只换一种笔触去记。Convert photos into one coherent illustrated carousel — keep silhouette, proportions, cap/lid, logo position, only the brushwork changes. `presets/travel-food-journal.json` supplies complete workflow defaults; actual subject plates still require a configured renderer and validated receipt. Five bundled style packs are independently selectable: `watercolor-journal` (default), `blue-lavender-watercolor`, `highway-485-lithograph`, `sumi-e-ink`, `hiroshige-bokashi`, `seurat-conte`; each contributes only technique, never subjects. See `references/configuration.md` for overrides.
+Keep the photo, remember it in a different stroke. 留住那张照片，只换一种笔触去记。Convert photos into one coherent illustrated carousel — keep silhouette, proportions, cap/lid, logo position, only the brushwork changes. `presets/travel-food-journal.json` supplies complete workflow defaults; actual subject plates still require a configured renderer and validated receipt. Eight style profiles in repo, 6 active: `watercolor-journal` (default), `blue-lavender-watercolor`, `highway-485-lithograph`, `sumi-e-ink`, `hiroshige-bokashi`, `seurat-conte` + 2 pending `botanical-watercolor`, `paper-collage`; each contributes only technique, never subjects. See `references/configuration.md` for overrides.
+
+## Renderer contract — subject-only plate
+
+**This section is blocking.** External renderers must output **subject-only plate**, not full scene.
+
+- `contains_only: "subject"` — plate must contain only the photographed subject on transparent or isolated background. No table, no surface, no environment, no room, no landscape, no secondary props.
+- ImageGen and similar tools ignore `background: transparent` — output remains RGB with background. You must explicitly **negate** environment in prompt: `NO table, NO surface, NO environment, NO room, NO background, NO ground, isolated subject on white, centered`.
+- Passing original photo as image-to-image causes model to faithfully reproduce full composition — `prompt: "留白"` will fail. Must use negative environment + high `isolation` weight, or use segment-then-generate.
+- Black-box tools that do not return model name: use `model=unspecified-by-tool` with `renderer-kind=external` and `external-service=<tool>` — allowed placeholder per 1.6.0.
+
+If plate contains background, composition will produce rectangular blocks, seams, and non-uniform paper. Detect early in `clean_plate` empty-area noise.
+
+
 
 ### Architecture
 Modular layers with invariants; weaker model executes without guessing.
@@ -36,7 +49,7 @@ These values are the preset's truth, visible without opening JSON. If a project 
 
 | Concern | Default Value | Executable Source |
 |---|---|---|
-| Canvas | 9:16 vertical, 1080×1920 px, deterministic | `composition.vertical-journal` |
+| Canvas | 9:16 vertical, 1152×2048 px, deterministic | `composition.vertical-journal` |
 | Paper | warm #F1EBDD, shared across set, 50% blank space minimum (sample shows #FAF6F0 warm) | `unification.warm-paper-journal` |
 | Caption position | bottom-center, below subject, two lines `location` / `date`, `center_y_ratio=0.72`, `top_clear=0.55`, `edge_margin=0.07`, `min_clearance=0.08` | `composition.vertical-journal.caption_zone` |
 | Caption typography | Noto Sans Light 30px at 1080px, #3B3832, textured serif fallback, EXIF-confirmed only | preset caption module |
@@ -171,7 +184,7 @@ The Markdown plan must exist. Send it as artifact or faithful summary with all 6
 **Step notification required:** after this step, send message containing:
 - `work/production-plan.md` (artifact or 200-char faithful summary with all 6 contract fields)
 - `work/sample-scope.json` hash
-- first composed sample image (1080×1920)
+- first composed sample image (1152×2048)
 - next step: "等待你批准第1张样张，批准后才渲染 2..N"
 
 If renderer not configured → stop, report `renderer_receipt.status=not-configured`, do not fabricate output, do not claim batch exists.
@@ -310,7 +323,7 @@ Fail closed always. No silent substitution. Repair causal stage only. Every row 
 | F-APPROVAL-INVALIDATED | user changes style, source, order, shared layout after approval | approval-state lock check fails | invalidate approval, return to 2.5/3 gates | re-run plan+sample review | notify "批准已失效，回 2.5" |
 | F-USER-REJECT-SAMPLE | user rejects sample | approval-state rejection reason recorded | update production_brief or style_choice, rerender sample only, do not batch | rerender sample with corrected brief | send rejection reason |
 | F-PRIVATE-CONSENT | private reference without external consent | consent flag `external_processing=false` but upload attempted | store locally only, do not upload | ask for explicit consent naming service | send consent request |
-| F-DIMENSION | output not 1080×1920 9:16 | QA dimension check fails | objective fail cannot be overridden by manual pass | fix compose canvas | report dimension actual vs expected |
+| F-DIMENSION | output not 1152×2048 9:16 | QA dimension check fails | objective fail cannot be overridden by manual pass | fix compose canvas | report dimension actual vs expected |
 | F-CAPTION-UNCONFIRMED | caption not EXIF-confirmed | caption source != EXIF | block compose | supply EXIF-confirmed caption or omit caption | send caption source error |
 
 Manual review decides semantic and aesthetic checks only; it never overrides machine-verifiable failures listed above. Second failure on same code → escalate: switch policy + report full evidence.

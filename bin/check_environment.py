@@ -35,7 +35,7 @@ def main() -> int:
     parser.add_argument("--font", type=Path, help="Explicit font file for deterministic typography")
     parser.add_argument("--skill-root", type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument("--json", action="store_true")
-    parser.add_argument("--check-updates", action="store_true", help="also run 24h throttled update checker (non-blocking, <2s cached)")
+    parser.add_argument("--check-updates", action="store_true", help="also run 7d throttled update checker (non-blocking, <2s cached)")
     args = parser.parse_args()
     checks: list[dict[str, Any]] = []
     errors: list[str] = []

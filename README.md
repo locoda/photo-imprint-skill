@@ -1,148 +1,89 @@
 # Photo Imprint (印痕)
 
-> Keep the photo, remember it in a different stroke. 留住那张照片，只换一种笔触去记。
+> Keep the photo, remember it in a different stroke.
 
-[English](README.md) | [中文](README.zh-CN.md)
+[简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md)
 
-
-Photo Imprint keeps that photo — silhouette, proportions, cap, logo — and only changes the stroke you remember it with. Real travel photos → a consistent illustrated journal carousel for IG / Xiaohongshu.
+You shot a week of travel — cups, streets, cabin windows. You want one journal carousel for IG / Xiaohongshu, not ten mismatched filters. Direct prompting makes a pretty picture but the small cup becomes big and the street invents a tower.
 
 `locoda/photo-imprint-skill` · English skill, Chinese name 印痕
 
-## See what it does
+```
+Please help me install this skill: https://github.com/locoda/photo-imprint-skill
+```
 
-Direct prompting makes a pretty picture that forgets your photo. Photo Imprint locks what matters and only abstracts the brushwork.
+![license MIT](https://img.shields.io/badge/license-MIT-green) ![version 1.5.0](https://img.shields.io/badge/version-1.5.0-blue) ![tests 34 gates](https://img.shields.io/badge/tests-34%20gates-lightgrey)
 
-| Photo Imprint (Template B – drink-minimal-caption-above) | Source photo (blurred for privacy) |
+| Photo Imprint (bottom-center, no caption) | Source (blurred 12px for privacy) |
 |---|---|
-| ![imprint 01](assets/samples/01-sjc-small-cup-paper-locked-v11.webp) | ![source 01 (blurred)](assets/samples/source-01.webp) |
-| Same cup, same lid, same proportion. 50% paper white, caption `SJC Airport` at y=300 / y=367, diffusion ≤10% width, 2–3 edge bleeds only | SJC Airport – small cup, green drink, clear lid (source blurred 12px) |
-| ![imprint 02](assets/samples/02-in-flight-paper-locked-v11.webp) | ![source 02 (blurred)](assets/samples/source-02.webp) |
-| Cup locked, cabin simplified to cool wash, no invented skyline | In-flight cup in hand (source blurred) |
-| ![imprint 03](assets/samples/03-roppongi-paper-locked-v11.webp) | ![source 03 (blurred)](assets/samples/source-03.webp) |
-| Cup locked, background strongly simplified, no Tokyo Tower invented | Roppongi street cup (source blurred) |
+| ![imprint 01](assets/samples/01-sjc-small-cup-paper-locked-v11.webp) | ![source 01](assets/samples/source-01.webp) |
+| Same small cup, lid locked, 50% paper-white, bottom-center | SJC small cup |
+| ![imprint 02](assets/samples/02-in-flight-paper-locked-v11.webp) | ![source 02](assets/samples/source-02.webp) |
+| Cabin simplified to cool wash, no invented skyline | In-flight cup |
+| ![imprint 03](assets/samples/03-roppongi-paper-locked-v11.webp) | ![source 03](assets/samples/source-03.webp) |
+| Background strongly simplified, no Tokyo Tower invented | Roppongi street cup |
 
-All samples are locally compressed to webp <100KB (`assets/samples/`). Source photos are blurred 12px for privacy. Full 1152×2048 finals are 399–430KB jpg, no EXIF.
+All samples webp <100KB in `assets/samples/`. Full finals 1152×2048 jpg ~400KB, no EXIF/GPS/XMP.
 
-Template A (travel-scene-caption-below) is the same idea — image lower, caption below — for open scenes. Share 2–3 scene photos and I will add a Template A example in the same folder.
+## When 10 loose travel photos finally look like one journal
 
+**You:** You have 10 photos from Japan — small cups, in-flight trays, Roppongi streets. You want to post a carousel, but originals are messy, you don't want to show faces, and you don't want the model to invent a Tokyo Tower. You tried one prompt for all and the cup changed size on page 2.
 
-## Styles — same cup, different stroke
+**Photo Imprint:** Locks silhouette, proportions, cap/lid, logo position for every page. It shows 5 real style thumbnails, you pick one, it builds a production plan and renders only page 1. You see the plan + sample together, with 6-field style contract, and approve with your exact words before any batch.
 
-A style changes only how it's drawn, never what's in the photo. Pick one, keep the rest locked. Same Starbucks cup below, three Artvee-derived strokes:
-
-| `sumi-e-ink` — Zeshin 1847 | `hiroshige-bokashi` — Hiroshige 1833 no-rain | `seurat-conte` — Seurat 1882 |
-|---|---|---|
-| ![sumi-e cup](assets/samples/style-sumi-e-cup.webp) | ![hiroshige bokashi cup](assets/samples/style-hiroshige-bokashi-cup.webp) | ![seurat conte cup](assets/samples/style-seurat-conte-cup.webp) |
-| sparse ink lines, light sumi wash, large paper-white | flat color + bokashi gradient, no diagonal rain, woodblock foreground | no hard outline, velvety Conté hatching, chiaroscuro |
-
-**Bundled and approved (5):**
-
-- `blue-lavender-watercolor` — transparent wash, cool blue/lavender value groups, paper-white breathing (Smithsonian / Allen Tucker) — see 3-page sample above
-- `highway-485-lithograph` — sparse broken contour, paper-white negative space, restrained dark accents (Smithsonian / Allen Tucker)
-- `sumi-e-ink` — Shibata Zeshin *Teapot and Cups* (1847): sparse ink lines, light sumi wash, large paper-white
-- `hiroshige-bokashi` — Utagawa Hiroshige *Driving Rain at Shono* (1833) without rain: flat color + bokashi gradient, no diagonal rain lines, foreground woodblock stylization
-- `seurat-conte` — Georges Seurat *Madame Seurat* (1882–83): no hard outline, velvety Conté hatching, chiaroscuro shaping
-
-**Text-rule only (pending reference):** `botanical-watercolor`, `paper-collage`, `watercolor-journal` — usable, but shows a warning until a public-domain reference is added.
-
-Switch styles in `profiles/styles/<id>.json`. One style per carousel, EXIF order and captions stay locked. No logo, no text invention, no hand/cloth.
-
-
-## Install and use
-
-```bash
-npx skills add locoda/photo-imprint-skill
-# or
-git clone https://github.com/locoda/photo-imprint-skill.git
-pip install -r requirements.txt
-python3 bin/check_environment.py
-```
-
-3 steps:
-
-```bash
-# 1. EXIF order + manifest
-python3 bin/preprocess.py --input /path/to/photos --output work/manifest.json --config work/resolved-config.json
-
-# 2. Plan + sample only
-python3 bin/build_production_plan.py --render-plan work/render-plan.json --output work/production-plan.md
-# render page 1, discuss plan+sample together
-
-# 3. After explicit approval → batch → QA → ZIP
-python3 bin/package_verified.py package --input work/final --output dist/carousel.zip
-```
-
-`workflow.py status` / `next` never writes, it only tells you what to do next.
+**Now you can:** Judge the whole set from one page, keep the small cup small across all pages, and get a verified ZIP where all pages share the same warm paper #FAF6F0, 55% top whitespace, bottom-center placement, and no invented facts.
 
 ## How it works
 
-Not a prompt collection. A gated workflow that keeps 5 concerns independent — so the stroke changes, the photo stays:
+### Lock what matters, abstract only the stroke
 
-1. **Theme** – what to draw (source photo is authority)
-2. **Style** – how to draw it (wash, edge, value from a reference, never its subject)
-3. **Layers** – what stays separate (plate / paper / typography)
-4. **Composition** – where it goes (deterministic 9:16, 1152×2048, paper `rgb(247,244,235)`)
-5. **Unification** – how the set stays one (same brightness, grain, caption y=300/367)
+Source photo is authority. Template B `drink-minimal` and Template A `travel-scene` now both use bottom-center flow: subject centered at y=0.72, 1152×2048, warm paper, 50% blank minimum. Shape-lock preserves cup/bottle silhouette, height, lid, logo position. Abstraction is only in brushwork, with 2–3 edge bleeds ≤10% width right / ≤8% height bottom, colors sampled from subject itself. No hand, cloth, invented skyline, or open-book mockup.
 
-Principle:
+### One style, frozen contract, no blending
 
-```
-photos → EXIF order → per-page brief (preserve / simplify / omit) → production-plan.md
-      → render page 1 only → hash-lock sample style contract
-      → discuss plan+sample → explicit approval
-      → batch 2..N with frozen contract → clean-plate normalization
-      → deterministic composition → two-level QA → verified ZIP (no EXIF/GPS/XMP)
-```
+Five bundled style packs contribute only technique, never subjects: `watercolor-journal` (default), `blue-lavender-watercolor`, `highway-485-lithograph`, `sumi-e-ink` (Zeshin 1847), `hiroshige-bokashi` (Hiroshige 1833 no-rain), `seurat-conte` (Seurat 1882). Single-select only. Choice is recorded in `work/style_choice.json` with `selected`, `user_delegated`, `timestamp`, `alternatives_shown`, frozen into `work/sample_style_contract.json` 6 keys. Batch prompts hash-lock style choice, contract, render-plan locks, and source hashes. Blending is rejected.
 
-Shape-lock is why it keeps the photo: Template B locks cup/bottle silhouette, proportions, cap/lid, logo position; abstraction only in brushwork, with 2–3 ultra-light edge bleeds ≤10% width right / ≤8% height bottom, colors sampled from subject itself.
+### Plan + sample gate, you stay in control
 
-Typed revisions (`remove`, `retain_but_simplify`, `add_as_secondary`, `preserve_unchanged`) keep “the roads feel strange” from becoming “delete every road”.
+Not a prompt collection. A gated workflow: EXIF order → per-page `production_brief` (preserve / simplify / omit) → `production-plan.md` → render page 1 only → discuss plan+sample → explicit approval → batch 2..N with frozen contract → clean-plate normalization → deterministic composition → two-level QA (page-level compliance vs set-level cohesion) → verified ZIP. You talk to your AI in plain language:
 
-## 2 layout templates
+> I have 10 photos in /path/to/photos, make them watercolor journal, keep cups small, bottom-center, 55% top whitespace, no caption.
 
-**Template A `travel-scene-caption-below`** – image lower (center 58–62%, scale 38–45%), caption below, ~50% negative space top/sides.
+AI checks EXIF, shows 5 thumbnails, renders sample, waits for "批准第1张，继续". Page-local fix like "page 2 background too busy, simplify" only marks page 2 stale. Style change invalidates approval and returns to style gate — expected, not a bug. Private references stay local unless you explicitly say "you may upload to X". `python3 bin/workflow.py status|next` never writes, only tells next step.
 
-**Template B `drink-minimal-caption-above`** – caption above at y=300/367, subject centered 60–65% (scale 32–40%, small cup stays small), same 50% paper, restrained diffusion. Current 3-page set uses this.
+<details>
+<summary>For AI / Implementation — scripts, gates, contracts</summary>
 
-Full fields: canvas, paper, placement, typography (`NotoSerifDisplay-Regular 48pt / Light 27pt`, `#403C44`), diffusion limits, forbidden elements.
+**Purpose:** `presets/travel-food-journal.json` supplies defaults; renderer requires validated receipt.
 
-## vs naive prompting
+**6 layers:** Config (`presets/*.json` + `profiles/styles/*.json` → `work/resolved-config.json` SHA256) → Plan (`manifest.json` → `render-plan.json` → `production-plan.md` + `approval-state.json` + `sample-scope.json`) → Gate (2.5 style gate mandatory → `style_choice.json`; Step 3 sample 🔴 CHECKPOINT; Step 4 approval 🛑 STOP) → Render (`renderer_receipt.py` → `clean_plate.py` → `compose.py`) → QA (`qa_images.py`) → Package (`package_verified.py stage + verify`).
 
-| Naive | Photo Imprint |
-|---|---|
-| One prompt for all | Per-page brief + frozen style contract |
-| Invents background | Forbidden-inventions list enforced |
-| Small cup → big cup | Shape-lock, small stays small |
-| 3 pages 3 papers | Unified warm white, same grain/brightness |
-| No review | Page-level compliance + set-level cohesion |
+Invariants: EXIF order immutable; sample = first EXIF only; sample never becomes reference; every plate has receipt; no EXIF/GPS/XMP in outputs; no invention of location/date/caption.
 
+**Explicit defaults:** Canvas 9:16 1080×1920 (now 1152×2048), paper #FAF6F0 50% blank, Noto Sans Light 30px #3B3832 at 1080px, default `watercolor-journal`, order EXIF asc, QA full + 360×640, renderer none by default.
 
+**Workflow (AI runs):** `check_environment.py` → `resolve_config.py` + `preprocess.py` → `build_render_plan.py` + `build_production_plan.py` + `render_scope.py --mode sample` → 2.5 style gate → sample → `review_gate.py approve` + `render_scope.py --mode batch` → batch compose → QA → revision scope → `package_verified.py`.
 
-## Project layout
+Update checker (24h throttled, non-blocking): `python3 bin/check_updates.py` / `python3 bin/check_environment.py --check-updates`. Reads `SKILL.md` version + `source.repository`, local SHA from git HEAD or `.skill-lock.json`, remote SHA via `gh api` → GitHub API → `git ls-remote`. Cache `~/.cache/photo-imprint-skill/update-check.json`. Errors never block.
 
-```
-SKILL.md                  # workflow (English)
-presets/travel-food-journal.json
-profiles/{themes,styles,layers,compositions,unification}/
-assets/samples/           # before/after (webp <100KB)
-assets/style-packs/       # Smithsonian public-domain packs
-tests/                    # 34 gate/regression checks
-```
+Validation: `python3 -m unittest discover -s tests -v` / `python3 bin/validate_skill.py --json`
 
-Private references stay local and are never sent externally without explicit consent.
+Layout: `SKILL.md`, `presets/`, `profiles/{themes,styles,layers,compositions,unification}/`, `assets/samples/`, `assets/style-packs/`, `bin/`, `tests/`
 
-## Validation
+</details>
 
-```bash
-python3 -m unittest discover -s tests -v
-python3 bin/validate_skill.py --json
-```
+## References
 
+- Behavior and boundaries: `SKILL.md`, `references/configuration.md`, `references/review-gate.md`, `references/quality-checks.md`
+- Regression and boundary cases: `tests/`, `references/test-cases.md` (34 gates), `bin/validate_skill.py`
+- Storage and archiving: `work/resolved-config.json` (SHA256), `work/manifest.json` (EXIF-ordered), `work/style_choice.json`, `work/composition-manifest.json`, `work/verify-report.json`
+- No extra-licensed fonts or images beyond Smithsonian public-domain packs in `assets/style-packs/`; samples in `assets/samples/` are webp <100KB, source blurred 12px for privacy; finals contain no EXIF/GPS/XMP; no copyrighted excerpts
+
+## License
+
+MIT License — Copyright (c) 2026 locoda. Code and docs under MIT; style packs under their respective Smithsonian public-domain terms; sample images under same repo license with privacy blur applied to sources.
 
 ---
-
 Made by [1mether](https://1mether.me).
 
 *Keep the photo, just remember it in a different stroke.*
-

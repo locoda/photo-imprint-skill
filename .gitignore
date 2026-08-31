@@ -14,3 +14,6 @@
 # Python cache files.
 __pycache__/
 *.py[cod]
+
+!/assets/style-packs/oil-impasto/reference.webp
+!/assets/style-packs/acrylic-flat/reference.webp

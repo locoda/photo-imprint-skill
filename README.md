@@ -91,8 +91,6 @@ Invariants: EXIF order immutable; sample = first EXIF only; sample never becomes
 
 **Workflow (AI runs):** `check_environment.py` → `resolve_config.py` + `preprocess.py` → `build_render_plan.py` + `build_production_plan.py` → 2.5 style gate → sample → `review_gate.py approve` + `compose.py batch` → batch compose → QA → revision scope → `package_verified.py`.
 
-Update checker (7d throttled, non-blocking): `python3 bin/check_updates.py` / `python3 bin/check_environment.py --check-updates`. Reads `SKILL.md` version + `source.repository`, local SHA from git HEAD or `.skill-lock.json`, remote SHA via `gh api` → GitHub API → `git ls-remote`. Cache `~/.cache/photo-imprint-skill/update-check.json`. Errors never block.
-
 Validation: `python3 -m unittest discover -s tests -v` / `python3 bin/validate_skill.py --json`
 
 Layout: `SKILL.md`, `presets/`, `profiles/{themes,styles,layers,compositions,unification}/`, `assets/samples/`, `assets/style-packs/`, `bin/`, `tests/`

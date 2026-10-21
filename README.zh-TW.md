@@ -86,8 +86,6 @@ AI 按 EXIF 排序，缺 EXIF 會問是否授權 draft，丟8張風格，你說�
 
 工作流：`check_environment.py` → `resolve_config.py` + `preprocess.py` → `build_render_plan.py` + `build_production_plan.py` + `build_render_plan.py + build_production_plan.py (sample scope)` → 風格門 → 範例 → `review_gate.py approve` + `compose.py batch` → 批次合成 → QA → revision → `package_verified.py`
 
-更新檢查（7d節流，非阻塞）：`python3 bin/check_updates.py` / `python3 bin/check_environment.py --check-updates`
-
 驗證：`python3 bin/validate_skill.py --json`
 
 </details>

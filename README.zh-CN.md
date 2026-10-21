@@ -86,8 +86,6 @@ AI 按 EXIF 排序，缺 EXIF 会问是否授权 draft，甩8张风格，你说�
 
 工作流：`check_environment.py` → `resolve_config.py` + `preprocess.py` → `build_render_plan.py` + `build_production_plan.py` + `build_render_plan.py + build_production_plan.py (sample scope)` → 风格门 → 样张 → `review_gate.py approve` + `compose.py batch` → 批量合成 → QA → revision → `package_verified.py`
 
-更新检查（7d节流，非阻塞）：`python3 bin/check_updates.py` / `python3 bin/check_environment.py --check-updates`，读 SKILL.md version + source.repository，缓存 `~/.cache/photo-imprint-skill/update-check.json`
-
 验证：`python3 -m unittest discover -s tests -v` / `python3 bin/validate_skill.py --json`
 
 </details>
